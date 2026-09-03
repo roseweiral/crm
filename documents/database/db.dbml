@@ -22,66 +22,70 @@ Enum contact_award_status {
 }
 
 Table contacts {
-  id integer [pk, increment]
+  id bigint [pk, increment]
   first_name varchar [not null]
   last_name varchar [not null]
   email varchar [unique]
   status contact_status [not null, default: 'active']
   can_login boolean [not null, default: false]
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 }
 
 Table role_types {
-  id integer [pk, increment]
+  id bigint [pk, increment]
   name varchar [not null, unique]
   description text
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 }
 
 Table group_types {
-  id integer [pk, increment]
+  id bigint [pk, increment]
   name varchar [not null, unique]
   description text
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 }
 
 Table groups {
-  id integer [pk, increment]
-  group_type_id integer [not null]
-  name varchar [not null, unique]
+  id bigint [pk, increment]
+  group_type_id bigint [not null]
+  name varchar [not null]
   description text
-  parent_id integer 
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  parent_id bigint
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (parent_id, name) [unique]
+  }
 }
 
 Table families {
-  id integer [pk, increment]
+  id bigint [pk, increment]
   name varchar [not null]
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 }
 
 Table award_types {
-  id integer [pk, increment]
+  id bigint [pk, increment]
   name varchar [not null, unique]
   description text
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 }
 
 Table contact_roles_groups {
-  id integer [pk, increment]
-  contact_id integer [not null]
-  role_type_id integer [not null]
-  group_id integer [not null]
+  id bigint [pk, increment]
+  contact_id bigint [not null]
+  role_type_id bigint [not null]
+  group_id bigint [not null]
   start_date date [not null]
   end_date date
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 
   indexes {
     (contact_id, role_type_id, group_id, start_date) [unique]
@@ -89,12 +93,12 @@ Table contact_roles_groups {
 }
 
 Table contact_families {
-  id integer [pk, increment]
-  contact_id integer [not null]
-  family_id integer [not null]
+  id bigint [pk, increment]
+  contact_id bigint [not null]
+  family_id bigint [not null]
   relationship family_relationship_type [not null]
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
 
   indexes {
     (contact_id, family_id, relationship) [unique]
@@ -102,15 +106,19 @@ Table contact_families {
 }
 
 Table contact_awards {
-  id integer [pk, increment]
-  contact_id integer [not null]
-  award_type_id integer [not null]
+  id bigint [pk, increment]
+  contact_id bigint [not null]
+  award_type_id bigint [not null]
   status contact_award_status [not null, default: 'nominated']
   nomination_date date [not null]
   presented_date date
   notes text
-  created_at timestamp [not null, default: `now()`]
-  modified_at timestamp [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (contact_id, award_type_id) [unique]
+  }
 }
 
 Ref: contact_roles_groups.contact_id > contacts.id
