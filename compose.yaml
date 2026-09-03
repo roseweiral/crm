@@ -60,7 +60,7 @@ services:
       app:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:5173"]
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:5173"]
       interval: 2s
       timeout: 5s
       retries: 15
@@ -73,6 +73,7 @@ services:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       API_URL: http://app:8000
+      TEST_CATEGORIES: ${API_TEST_CATEGORIES}
     volumes:
       - ./tests/api:/workspace/tests/api
       - ./database:/database:ro
@@ -82,7 +83,7 @@ services:
       app:
         condition: service_healthy
     profiles: ["test"]
-    command: ["sh", "-c", "python /database/demo_data.py --replace && pytest -q tests/api"]
+    command: ["sh", "-c", "python /database/demo_data.py --replace && python tests/api/run_tests.py"]
 
   e2e-tester:
     build:

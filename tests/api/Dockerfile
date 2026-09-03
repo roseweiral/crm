@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir --requirement tests/api/requirements.txt
 
 COPY tests/api ./tests/api
 
-CMD ["pytest", "-q", "tests/api"]
+CMD ["python", "tests/api/run_tests.py"]

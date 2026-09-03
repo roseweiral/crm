@@ -6,12 +6,14 @@ from uuid import UUID
 
 import httpx
 import psycopg
+import pytest
 from psycopg.rows import dict_row
 
 
 API_URL = os.environ["API_URL"]
 DATABASE_URL = os.environ["DATABASE_URL"]
 CONTACT_FIELDS = {"id", "first_name", "last_name", "email", "status", "can_login"}
+pytestmark = pytest.mark.contract
 
 
 def database_rows(query: str, parameters: tuple[Any, ...] = ()) -> list[dict[str, Any]]:

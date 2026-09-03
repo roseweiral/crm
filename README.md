@@ -26,8 +26,11 @@ docker compose up --build
 Run the API tests:
 
 ```shell
-docker compose run --rm api-tester
+docker compose run --rm --build api-tester
 ```
+
+The configured categories run in order and stop on the first failing category.
+The default sequence is `smoke,contract`.
 
 Run the browser tests:
 
