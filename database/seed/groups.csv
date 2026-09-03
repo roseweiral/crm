@@ -1,1 +1,20 @@
 id,group_type_id,name,description,parent_id
+006518a9-1680-5f17-8706-d4f1c949ed79,ff858276-d607-56df-8c4f-82fb2bb8b022,HQ,Organisation headquarters,
+b53f0ce9-745d-5d3e-9467-fd9bd07ef1b2,7e2f3a0d-dc29-5095-a8cb-c62fde16df2e,Greater London,Greater London county,006518a9-1680-5f17-8706-d4f1c949ed79
+28c8679f-2cbf-59b7-8275-ff4599488393,054c9084-7eb2-5d49-ba2b-c492dff00f49,London,London city area,b53f0ce9-745d-5d3e-9467-fd9bd07ef1b2
+0be76074-f220-567c-ae7d-babb5bebaf1e,41a78818-420a-5c5f-9161-cd2e48a31b67,Croydon,Croydon town area,28c8679f-2cbf-59b7-8275-ff4599488393
+f15a02a1-3a92-5be6-85d9-cc621933eb73,41a78818-420a-5c5f-9161-cd2e48a31b67,Bromley,Bromley town area,28c8679f-2cbf-59b7-8275-ff4599488393
+d9c10b8d-a095-52f7-9578-15bf6d79ef44,41a78818-420a-5c5f-9161-cd2e48a31b67,Sutton,Sutton town area,28c8679f-2cbf-59b7-8275-ff4599488393
+7b73d1ef-e8f5-5dc5-82eb-f5be96493015,41a78818-420a-5c5f-9161-cd2e48a31b67,Lewisham,Lewisham town area,28c8679f-2cbf-59b7-8275-ff4599488393
+168aaf2b-a378-5fef-be22-09ca07d9d5c1,cf27686a-58e7-5b86-a0a2-82ec87e57698,Croydon Group 1,Local group serving Croydon,0be76074-f220-567c-ae7d-babb5bebaf1e
+21ba4cf4-d7cd-5589-a460-3e33628a32c5,cf27686a-58e7-5b86-a0a2-82ec87e57698,Bromley Group 1,Local group serving Bromley,f15a02a1-3a92-5be6-85d9-cc621933eb73
+dd518973-e7ef-5421-87ef-deedb7fffa47,cf27686a-58e7-5b86-a0a2-82ec87e57698,Sutton Group 1,Local group serving Sutton,d9c10b8d-a095-52f7-9578-15bf6d79ef44
+e0ea47fd-e8cc-5aee-a245-1c678a6b4c9b,cf27686a-58e7-5b86-a0a2-82ec87e57698,Lewisham Group 1,Local group serving Lewisham,7b73d1ef-e8f5-5dc5-82eb-f5be96493015
+904341f0-7b39-51a6-8672-9975af2228fc,cf27686a-58e7-5b86-a0a2-82ec87e57698,Croydon Group 2,Local group serving Croydon,0be76074-f220-567c-ae7d-babb5bebaf1e
+0739bcb1-3048-57f9-82cc-f9446d3b23d5,cf27686a-58e7-5b86-a0a2-82ec87e57698,Bromley Group 2,Local group serving Bromley,f15a02a1-3a92-5be6-85d9-cc621933eb73
+2acea639-21df-57c2-9f43-ddf752488d23,cf27686a-58e7-5b86-a0a2-82ec87e57698,Sutton Group 2,Local group serving Sutton,d9c10b8d-a095-52f7-9578-15bf6d79ef44
+f61f9b1a-dcd8-533f-80a6-2fdd8c453f72,cf27686a-58e7-5b86-a0a2-82ec87e57698,Lewisham Group 2,Local group serving Lewisham,7b73d1ef-e8f5-5dc5-82eb-f5be96493015
+e9d9b46c-febb-5da7-ba25-9b9445cb1ca1,cf27686a-58e7-5b86-a0a2-82ec87e57698,Croydon Group 3,Local group serving Croydon,0be76074-f220-567c-ae7d-babb5bebaf1e
+86a5dff9-08d3-5005-863c-a7ca131c1960,cf27686a-58e7-5b86-a0a2-82ec87e57698,Bromley Group 3,Local group serving Bromley,f15a02a1-3a92-5be6-85d9-cc621933eb73
+379af399-4715-5e98-b807-cf74c014d186,cf27686a-58e7-5b86-a0a2-82ec87e57698,Sutton Group 3,Local group serving Sutton,d9c10b8d-a095-52f7-9578-15bf6d79ef44
+eeb3861b-2a19-560b-81b5-b636eab97953,cf27686a-58e7-5b86-a0a2-82ec87e57698,Lewisham Group 3,Local group serving Lewisham,7b73d1ef-e8f5-5dc5-82eb-f5be96493015
