@@ -1,0 +1,124 @@
+// Initial MVP data model for the volunteer CRM.
+// A contact can hold a role within one or more groups.
+
+Enum family_relationship_type {
+  child
+  parent
+  guardian
+  other
+}
+
+Enum contact_status {
+  active
+  inactive
+  archived
+}
+
+Enum contact_award_status {
+  nominated
+  approved
+  presented
+  declined
+}
+
+Table contacts {
+  id integer [pk, increment]
+  first_name varchar [not null]
+  last_name varchar [not null]
+  email varchar [unique]
+  status contact_status [not null, default: 'active']
+  can_login boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table role_types {
+  id integer [pk, increment]
+  name varchar [not null, unique]
+  description text
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table group_types {
+  id integer [pk, increment]
+  name varchar [not null, unique]
+  description text
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table groups {
+  id integer [pk, increment]
+  group_type_id integer [not null]
+  name varchar [not null, unique]
+  description text
+  parent_id integer 
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table families {
+  id integer [pk, increment]
+  name varchar [not null]
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table award_types {
+  id integer [pk, increment]
+  name varchar [not null, unique]
+  description text
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Table contact_roles_groups {
+  id integer [pk, increment]
+  contact_id integer [not null]
+  role_type_id integer [not null]
+  group_id integer [not null]
+  start_date date [not null]
+  end_date date
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (contact_id, role_type_id, group_id, start_date) [unique]
+  }
+}
+
+Table contact_families {
+  id integer [pk, increment]
+  contact_id integer [not null]
+  family_id integer [not null]
+  relationship family_relationship_type [not null]
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (contact_id, family_id, relationship) [unique]
+  }
+}
+
+Table contact_awards {
+  id integer [pk, increment]
+  contact_id integer [not null]
+  award_type_id integer [not null]
+  status contact_award_status [not null, default: 'nominated']
+  nomination_date date [not null]
+  presented_date date
+  notes text
+  created_at timestamp [not null, default: `now()`]
+  modified_at timestamp [not null, default: `now()`]
+}
+
+Ref: contact_roles_groups.contact_id > contacts.id
+Ref: contact_roles_groups.role_type_id > role_types.id
+Ref: contact_roles_groups.group_id > groups.id
+Ref: groups.group_type_id > group_types.id
+Ref: groups.parent_id > groups.id
+Ref: contact_families.contact_id > contacts.id
+Ref: contact_families.family_id > families.id
+Ref: contact_awards.contact_id > contacts.id
+Ref: contact_awards.award_type_id > award_types.id
