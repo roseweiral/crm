@@ -59,17 +59,22 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:5173"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
 
-  tester:
+  api-tester:
     build:
       context: .
-      dockerfile: tests/Dockerfile
+      dockerfile: tests/api/Dockerfile
     environment:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       API_URL: http://app:8000
     volumes:
-      - ./tests:/workspace/tests
+      - ./tests/api:/workspace/tests/api
       - ./database:/database:ro
     depends_on:
       database:
@@ -77,7 +82,21 @@ services:
       app:
         condition: service_healthy
     profiles: ["test"]
-    command: ["sh", "-c", "python /database/demo_data.py --replace && pytest -q tests"]
+    command: ["sh", "-c", "python /database/demo_data.py --replace && pytest -q tests/api"]
+
+  e2e-tester:
+    build:
+      context: .
+      dockerfile: tests/e2e/Dockerfile
+    environment:
+      FRONTEND_URL: http://frontend:5173
+    volumes:
+      - ./tests/e2e/specs:/workspace/specs
+      - ./tests/e2e/playwright.config.js:/workspace/playwright.config.js:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+    profiles: ["test"]
 
 volumes:
   postgres_data:
