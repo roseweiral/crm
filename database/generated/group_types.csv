@@ -1,0 +1,6 @@
+id,name,description
+ff858276-d607-56df-8c4f-82fb2bb8b022,HQ,Organisation headquarters
+7e2f3a0d-dc29-5095-a8cb-c62fde16df2e,County,County-level area
+054c9084-7eb2-5d49-ba2b-c492dff00f49,City,City-level area
+41a78818-420a-5c5f-9161-cd2e48a31b67,Town,Town-level area
+cf27686a-58e7-5b86-a0a2-82ec87e57698,Group,Local member unit

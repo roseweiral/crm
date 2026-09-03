@@ -1,0 +1,84 @@
+name: volunteer-crm-${APP_ENV}
+
+services:
+  database:
+    build:
+      context: ./database
+    environment:
+      APP_ENV: ${APP_ENV}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  app:
+    build:
+      context: ./app
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+    ports:
+      - "${APP_PORT}:8000"
+    volumes:
+      - ./app:/app
+      - ./database:/database
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  frontend:
+    build:
+      context: ./web
+    environment:
+      APP_ENV: ${APP_ENV}
+      VITE_API_URL: ${FRONTEND_API_URL}
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    volumes:
+      - ./web:/web
+      - frontend_node_modules:/web/node_modules
+    depends_on:
+      app:
+        condition: service_healthy
+
+  tester:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      API_URL: http://app:8000
+    volumes:
+      - ./tests:/workspace/tests
+      - ./database:/database:ro
+    depends_on:
+      database:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    profiles: ["test"]
+    command: ["sh", "-c", "python /database/demo_data.py --replace && pytest -q tests"]
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
