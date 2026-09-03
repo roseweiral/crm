@@ -1,12 +1,15 @@
+name: volunteer-crm-${APP_ENV}
+
 services:
   database:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-crm}
-      POSTGRES_USER: ${POSTGRES_USER:-crm}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crm_local}
+      APP_ENV: ${APP_ENV}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
@@ -20,11 +23,13 @@ services:
     build:
       context: ./app
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD:-crm_local}@database:5432/${POSTGRES_DB:-crm}
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${APP_PORT}:8000"
     volumes:
       - ./app:/app
+      - ./database:/database:ro
     depends_on:
       database:
         condition: service_healthy
@@ -44,9 +49,10 @@ services:
     build:
       context: ./web
     environment:
-      VITE_API_URL: http://localhost:${APP_PORT:-8000}
+      APP_ENV: ${APP_ENV}
+      VITE_API_URL: ${FRONTEND_API_URL}
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT}:5173"
     volumes:
       - ./web:/web
       - frontend_node_modules:/web/node_modules
@@ -59,7 +65,8 @@ services:
       context: .
       dockerfile: tests/Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD:-crm_local}@database:5432/${POSTGRES_DB:-crm}
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       API_URL: http://app:8000
     volumes:
       - ./tests:/workspace/tests
