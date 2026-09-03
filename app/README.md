@@ -1,5 +1,4 @@
 # API
 
-This directory contains the FastAPI application for the CRM.
-
-The Python project structure and dependencies will be added when API development begins.
+This directory contains the FastAPI application for the CRM. The initial API exposes
+`GET /health` so Docker and the test runner can verify that it is available.

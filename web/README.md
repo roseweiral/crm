@@ -1,5 +1,4 @@
 # Web
 
-This directory contains the React web application for the CRM.
-
-The frontend toolchain and application structure will be added when React development begins.
+This directory contains the React web application for the CRM. Vite provides the
+local development server inside the `frontend` Docker Compose service.
