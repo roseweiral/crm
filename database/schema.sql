@@ -21,7 +21,7 @@ CREATE TYPE contact_award_status AS ENUM (
 );
 
 CREATE TABLE contacts (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name varchar NOT NULL,
   last_name varchar NOT NULL,
   email varchar UNIQUE,
@@ -32,7 +32,7 @@ CREATE TABLE contacts (
 );
 
 CREATE TABLE role_types (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar NOT NULL UNIQUE,
   description text,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -40,7 +40,7 @@ CREATE TABLE role_types (
 );
 
 CREATE TABLE group_types (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar NOT NULL UNIQUE,
   description text,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -48,11 +48,11 @@ CREATE TABLE group_types (
 );
 
 CREATE TABLE groups (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  group_type_id bigint NOT NULL,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_type_id uuid NOT NULL,
   name varchar NOT NULL,
   description text,
-  parent_id bigint,
+  parent_id uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_groups_group_type
@@ -76,15 +76,14 @@ CREATE UNIQUE INDEX uq_groups_parent_name
 CREATE INDEX idx_groups_group_type_id ON groups (group_type_id);
 CREATE INDEX idx_groups_parent_id ON groups (parent_id);
 
-CREATE TABLE families (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name varchar NOT NULL,
+CREATE TABLE family_units (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE award_types (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar NOT NULL UNIQUE,
   description text,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -92,10 +91,10 @@ CREATE TABLE award_types (
 );
 
 CREATE TABLE contact_roles_groups (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  contact_id bigint NOT NULL,
-  role_type_id bigint NOT NULL,
-  group_id bigint NOT NULL,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  role_type_id uuid NOT NULL,
+  group_id uuid NOT NULL,
   start_date date NOT NULL,
   end_date date,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -117,28 +116,28 @@ CREATE INDEX idx_contact_roles_groups_role_type_id
 CREATE INDEX idx_contact_roles_groups_group_id
   ON contact_roles_groups (group_id);
 
-CREATE TABLE contact_families (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  contact_id bigint NOT NULL,
-  family_id bigint NOT NULL,
+CREATE TABLE contact_family_units (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  family_unit_id uuid NOT NULL,
   relationship family_relationship_type NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_contact_families_contact
+  CONSTRAINT fk_contact_family_units_contact
     FOREIGN KEY (contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
-  CONSTRAINT fk_contact_families_family
-    FOREIGN KEY (family_id) REFERENCES families (id) ON DELETE RESTRICT,
-  CONSTRAINT uq_contact_families_relationship
-    UNIQUE (contact_id, family_id, relationship)
+  CONSTRAINT fk_contact_family_units_family_unit
+    FOREIGN KEY (family_unit_id) REFERENCES family_units (id) ON DELETE RESTRICT,
+  CONSTRAINT uq_contact_family_units_relationship
+    UNIQUE (contact_id, family_unit_id, relationship)
 );
 
-CREATE INDEX idx_contact_families_family_id
-  ON contact_families (family_id);
+CREATE INDEX idx_contact_family_units_family_unit_id
+  ON contact_family_units (family_unit_id);
 
 CREATE TABLE contact_awards (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  contact_id bigint NOT NULL,
-  award_type_id bigint NOT NULL,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  award_type_id uuid NOT NULL,
   status contact_award_status NOT NULL DEFAULT 'nominated',
   nomination_date date NOT NULL,
   presented_date date,
@@ -184,8 +183,8 @@ CREATE TRIGGER groups_set_modified_at
 BEFORE UPDATE ON groups
 FOR EACH ROW EXECUTE FUNCTION set_modified_at();
 
-CREATE TRIGGER families_set_modified_at
-BEFORE UPDATE ON families
+CREATE TRIGGER family_units_set_modified_at
+BEFORE UPDATE ON family_units
 FOR EACH ROW EXECUTE FUNCTION set_modified_at();
 
 CREATE TRIGGER award_types_set_modified_at
@@ -196,8 +195,8 @@ CREATE TRIGGER contact_roles_groups_set_modified_at
 BEFORE UPDATE ON contact_roles_groups
 FOR EACH ROW EXECUTE FUNCTION set_modified_at();
 
-CREATE TRIGGER contact_families_set_modified_at
-BEFORE UPDATE ON contact_families
+CREATE TRIGGER contact_family_units_set_modified_at
+BEFORE UPDATE ON contact_family_units
 FOR EACH ROW EXECUTE FUNCTION set_modified_at();
 
 CREATE TRIGGER contact_awards_set_modified_at

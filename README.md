@@ -33,6 +33,18 @@ Import the CSV seed data:
 docker compose run --rm app python /database/import_seed.py
 ```
 
+Generate demo data in the development database:
+
+```shell
+docker compose run --rm app python /database/demo_data.py --replace
+```
+
+Generate reviewable CSV files instead:
+
+```shell
+docker compose run --rm app python /database/demo_data.py --output csv
+```
+
 Stop the services while retaining database data:
 
 ```shell
@@ -45,7 +57,9 @@ Delete the database and frontend dependency volumes for a completely fresh start
 docker compose down --volumes
 ```
 
-The schema is automatically applied when PostgreSQL starts with a new database volume.
+When PostgreSQL starts with a new development or test database volume, it automatically
+applies the schema and then imports every seed CSV. Existing volumes are left alone.
+The tester also invokes the demo-data runner before executing the tests.
 
 ## Environment configuration
 

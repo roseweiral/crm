@@ -2,7 +2,8 @@ name: volunteer-crm-${APP_ENV}
 
 services:
   database:
-    image: postgres:16-alpine
+    build:
+      context: ./database
     environment:
       APP_ENV: ${APP_ENV}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -12,7 +13,6 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s
@@ -29,7 +29,7 @@ services:
       - "${APP_PORT}:8000"
     volumes:
       - ./app:/app
-      - ./database:/database:ro
+      - ./database:/database
     depends_on:
       database:
         condition: service_healthy
@@ -70,12 +70,14 @@ services:
       API_URL: http://app:8000
     volumes:
       - ./tests:/workspace/tests
+      - ./database:/database:ro
     depends_on:
       database:
         condition: service_healthy
       app:
         condition: service_healthy
     profiles: ["test"]
+    command: ["sh", "-c", "python /database/demo_data.py --replace && pytest -q tests"]
 
 volumes:
   postgres_data:

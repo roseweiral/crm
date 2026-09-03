@@ -22,7 +22,7 @@ Enum contact_award_status {
 }
 
 Table contacts {
-  id bigint [pk, increment]
+  id uuid [pk, default: `gen_random_uuid()`]
   first_name varchar [not null]
   last_name varchar [not null]
   email varchar [unique]
@@ -33,7 +33,7 @@ Table contacts {
 }
 
 Table role_types {
-  id bigint [pk, increment]
+  id uuid [pk, default: `gen_random_uuid()`]
   name varchar [not null, unique]
   description text
   created_at timestamptz [not null, default: `now()`]
@@ -41,7 +41,7 @@ Table role_types {
 }
 
 Table group_types {
-  id bigint [pk, increment]
+  id uuid [pk, default: `gen_random_uuid()`]
   name varchar [not null, unique]
   description text
   created_at timestamptz [not null, default: `now()`]
@@ -49,11 +49,11 @@ Table group_types {
 }
 
 Table groups {
-  id bigint [pk, increment]
-  group_type_id bigint [not null]
+  id uuid [pk, default: `gen_random_uuid()`]
+  group_type_id uuid [not null]
   name varchar [not null]
   description text
-  parent_id bigint
+  parent_id uuid
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 
@@ -62,15 +62,14 @@ Table groups {
   }
 }
 
-Table families {
-  id bigint [pk, increment]
-  name varchar [not null]
+Table family_units {
+  id uuid [pk, default: `gen_random_uuid()`]
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 }
 
 Table award_types {
-  id bigint [pk, increment]
+  id uuid [pk, default: `gen_random_uuid()`]
   name varchar [not null, unique]
   description text
   created_at timestamptz [not null, default: `now()`]
@@ -78,10 +77,10 @@ Table award_types {
 }
 
 Table contact_roles_groups {
-  id bigint [pk, increment]
-  contact_id bigint [not null]
-  role_type_id bigint [not null]
-  group_id bigint [not null]
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null]
+  role_type_id uuid [not null]
+  group_id uuid [not null]
   start_date date [not null]
   end_date date
   created_at timestamptz [not null, default: `now()`]
@@ -92,23 +91,23 @@ Table contact_roles_groups {
   }
 }
 
-Table contact_families {
-  id bigint [pk, increment]
-  contact_id bigint [not null]
-  family_id bigint [not null]
+Table contact_family_units {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null]
+  family_unit_id uuid [not null]
   relationship family_relationship_type [not null]
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 
   indexes {
-    (contact_id, family_id, relationship) [unique]
+    (contact_id, family_unit_id, relationship) [unique]
   }
 }
 
 Table contact_awards {
-  id bigint [pk, increment]
-  contact_id bigint [not null]
-  award_type_id bigint [not null]
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null]
+  award_type_id uuid [not null]
   status contact_award_status [not null, default: 'nominated']
   nomination_date date [not null]
   presented_date date
@@ -126,7 +125,7 @@ Ref: contact_roles_groups.role_type_id > role_types.id
 Ref: contact_roles_groups.group_id > groups.id
 Ref: groups.group_type_id > group_types.id
 Ref: groups.parent_id > groups.id
-Ref: contact_families.contact_id > contacts.id
-Ref: contact_families.family_id > families.id
+Ref: contact_family_units.contact_id > contacts.id
+Ref: contact_family_units.family_unit_id > family_units.id
 Ref: contact_awards.contact_id > contacts.id
 Ref: contact_awards.award_type_id > award_types.id

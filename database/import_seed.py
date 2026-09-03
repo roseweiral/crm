@@ -8,6 +8,7 @@ from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import psycopg
 from psycopg import Connection, sql
@@ -22,7 +23,7 @@ TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     ("role_types", ("id", "name", "description")),
     ("group_types", ("id", "name", "description")),
-    ("families", ("id", "name")),
+    ("family_units", ("id",)),
     ("award_types", ("id", "name", "description")),
     ("groups", ("id", "group_type_id", "name", "description", "parent_id")),
     (
@@ -30,8 +31,8 @@ TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("id", "contact_id", "role_type_id", "group_id", "start_date", "end_date"),
     ),
     (
-        "contact_families",
-        ("id", "contact_id", "family_id", "relationship"),
+        "contact_family_units",
+        ("id", "contact_id", "family_unit_id", "relationship"),
     ),
     (
         "contact_awards",
@@ -57,9 +58,9 @@ def parse_boolean(value: str) -> bool:
     raise ValueError(f"invalid boolean value: {value!r}")
 
 
-def converter_for(column: str) -> Callable[[str], Any]:
+def converter_for(table: str, column: str) -> Callable[[str], Any]:
     if column == "id" or column.endswith("_id"):
-        return int
+        return UUID
     if column.endswith("_date"):
         return date.fromisoformat
     if column == "can_login":
@@ -67,13 +68,15 @@ def converter_for(column: str) -> Callable[[str], Any]:
     return str
 
 
-def parse_value(column: str, value: str | None) -> Any:
+def parse_value(table: str, column: str, value: str | None) -> Any:
     if value is None or value.strip() == "":
         return None
-    return converter_for(column)(value.strip())
+    return converter_for(table, column)(value.strip())
 
 
-def read_rows(csv_path: Path, expected_columns: tuple[str, ...]) -> list[tuple[Any, ...]]:
+def read_rows(
+    table: str, csv_path: Path, expected_columns: tuple[str, ...]
+) -> list[tuple[Any, ...]]:
     with csv_path.open(encoding="utf-8-sig", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
         actual_columns = tuple(reader.fieldnames or ())
@@ -84,7 +87,7 @@ def read_rows(csv_path: Path, expected_columns: tuple[str, ...]) -> list[tuple[A
             )
 
         return [
-            tuple(parse_value(column, row[column]) for column in expected_columns)
+            tuple(parse_value(table, column, row[column]) for column in expected_columns)
             for row in reader
         ]
 
@@ -98,9 +101,7 @@ def insert_rows(
     if not rows:
         return 0
 
-    statement = sql.SQL(
-        "INSERT INTO {table} ({columns}) OVERRIDING SYSTEM VALUE VALUES ({values})"
-    ).format(
+    statement = sql.SQL("INSERT INTO {table} ({columns}) VALUES ({values})").format(
         table=sql.Identifier(table),
         columns=sql.SQL(", ").join(map(sql.Identifier, columns)),
         values=sql.SQL(", ").join(sql.Placeholder() for _ in columns),
@@ -110,22 +111,6 @@ def insert_rows(
         cursor.executemany(statement, rows)
 
     return len(rows)
-
-
-def reset_identity_sequence(connection: Connection[Any], table: str) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_get_serial_sequence(%s, 'id')", (table,))
-        sequence_name = cursor.fetchone()[0]
-
-        cursor.execute(
-            sql.SQL("SELECT max(id) FROM {}").format(sql.Identifier(table))
-        )
-        maximum_id = cursor.fetchone()[0]
-
-        cursor.execute(
-            "SELECT setval(%s::regclass, %s, %s)",
-            (sequence_name, maximum_id or 1, maximum_id is not None),
-        )
 
 
 def import_seed_data(
@@ -139,9 +124,8 @@ def import_seed_data(
         if not csv_path.is_file():
             raise FileNotFoundError(f"Missing seed file: {csv_path}")
 
-        rows = read_rows(csv_path, columns)
+        rows = read_rows(table, csv_path, columns)
         records_added = insert_rows(connection, table, columns, rows)
-        reset_identity_sequence(connection, table)
         total_records += records_added
         print(f"{table}: {records_added} RECORDS ADDED")
 
