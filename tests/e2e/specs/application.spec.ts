@@ -5,5 +5,6 @@ test("opens the CRM frontend", async ({ page }) => {
   await page.goto("/");
 
   await expect(page).toHaveTitle("Volunteer CRM");
-  await expect(page.getByRole("heading", { name: "Volunteer CRM" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hello World" })).toBeVisible();
+  await expect(page.getByText("Welcome to the New CRM")).toBeVisible();
 });

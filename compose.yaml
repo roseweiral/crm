@@ -25,6 +25,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT},http://0.0.0.0:${FRONTEND_PORT}
     ports:
       - "${APP_PORT}:8000"
     volumes:
@@ -93,11 +94,23 @@ services:
       FRONTEND_URL: http://frontend:5173
     volumes:
       - ./tests/e2e/specs:/workspace/specs
-      - ./tests/e2e/playwright.config.js:/workspace/playwright.config.js:ro
+      - ./tests/e2e/playwright.config.ts:/workspace/playwright.config.ts:ro
+      - ./tests/e2e/playwright-report:/workspace/playwright-report
     depends_on:
       frontend:
         condition: service_healthy
     profiles: ["test"]
+
+  e2e-report:
+    build:
+      context: .
+      dockerfile: tests/e2e/Dockerfile
+    ports:
+      - "${PLAYWRIGHT_REPORT_PORT:-9323}:9323"
+    volumes:
+      - ./tests/e2e/playwright-report:/workspace/playwright-report:ro
+    profiles: ["test"]
+    command: ["npm", "run", "report"]
 
 volumes:
   postgres_data:

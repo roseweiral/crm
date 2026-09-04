@@ -209,9 +209,12 @@ tempCodeRunnerFile.py
 # JavaScript dependencies and build output
 node_modules/
 web/dist/
+web/.vite/
+*.tsbuildinfo
 tests/e2e/node_modules/
 tests/e2e/playwright-report/
 tests/e2e/test-results/
+tests/e2e/blob-report/
 
 # Ruff stuff:
 .ruff_cache/
