@@ -8,6 +8,7 @@ from psycopg import Connection
 from pydantic import BaseModel
 
 from database import get_connection
+from authorization import AuthorizationService, get_authorization_service
 from models.reference_data import (
     Group,
     GroupDetail,
@@ -71,7 +72,9 @@ def get_role_types(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     connection: Connection[Any] = Depends(get_connection),
+    authorization: AuthorizationService = Depends(get_authorization_service),
 ) -> RoleTypePage:
+    authorization.require("reference-data:view")
     items, total = _page_rows(
         connection,
         table="role_types",
@@ -90,7 +93,9 @@ def get_role_types(
 def get_role_type(
     role_type_id: UUID,
     connection: Connection[Any] = Depends(get_connection),
+    authorization: AuthorizationService = Depends(get_authorization_service),
 ) -> RoleTypeDetail:
+    authorization.require("reference-data:view")
     return _record_by_id(
         connection,
         record_id=role_type_id,
@@ -106,7 +111,9 @@ def get_group_types(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     connection: Connection[Any] = Depends(get_connection),
+    authorization: AuthorizationService = Depends(get_authorization_service),
 ) -> GroupTypePage:
+    authorization.require("reference-data:view")
     items, total = _page_rows(
         connection,
         table="group_types",
@@ -127,7 +134,9 @@ def get_group_types(
 def get_group_type(
     group_type_id: UUID,
     connection: Connection[Any] = Depends(get_connection),
+    authorization: AuthorizationService = Depends(get_authorization_service),
 ) -> GroupTypeDetail:
+    authorization.require("reference-data:view")
     return _record_by_id(
         connection,
         record_id=group_type_id,
@@ -142,14 +151,22 @@ def get_group_type(
 def get_groups(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> GroupPage:
     offset = (page - 1) * page_size
-    total = connection.execute("SELECT count(*) AS total FROM groups").fetchone()[
-        "total"
-    ]
+    where_clause = ""
+    parameters: list[Any] = []
+    # Only this fixed fragment is interpolated; every value remains a DB parameter.
+    scope = authorization.scope("group:view")
+    if not scope.unrestricted:
+        where_clause = "WHERE g.id = ANY(%s)"
+        parameters.append(list(scope.ids))
+    total = connection.execute(
+        f"SELECT count(*) AS total FROM groups g {where_clause}", parameters
+    ).fetchone()["total"]
     rows = connection.execute(
-        """
+        f"""
         SELECT
           g.id,
           g.group_type_id,
@@ -161,10 +178,11 @@ def get_groups(
         FROM groups g
         JOIN group_types gt ON gt.id = g.group_type_id
         LEFT JOIN groups parent ON parent.id = g.parent_id
+        {where_clause}
         ORDER BY g.name, g.id
         LIMIT %s OFFSET %s
         """,
-        (page_size, offset),
+        (*parameters, page_size, offset),
     ).fetchall()
     items = [Group.model_validate(row) for row in rows]
     return GroupPage(items=items, page=page, page_size=page_size, total=total)
@@ -173,6 +191,7 @@ def get_groups(
 @router.get("/groups/{group_id}", response_model=GroupDetail, tags=["groups"])
 def get_group(
     group_id: UUID,
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> GroupDetail:
     row = connection.execute(
@@ -194,7 +213,9 @@ def get_group(
         """,
         (group_id,),
     ).fetchone()
-    if row is None:
+    if row is None or (
+        not authorization.allows("group:view", group_id)
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Group not found",

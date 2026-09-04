@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import os
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -20,6 +20,28 @@ TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "contacts",
         ("id", "first_name", "last_name", "email", "status", "can_login"),
+    ),
+    ("user_accounts", ("id", "contact_id", "status")),
+    (
+        "user_identities",
+        (
+            "id", "user_account_id", "provider", "issuer", "subject", "email",
+            "email_verified", "last_signed_in_at",
+        ),
+    ),
+    (
+        "invitations",
+        (
+            "id", "user_account_id", "invited_by_user_account_id", "email",
+            "token_hash", "expires_at", "accepted_at", "revoked_at",
+        ),
+    ),
+    (
+        "user_sessions",
+        (
+            "id", "user_account_id", "token_hash", "expires_at", "last_seen_at",
+            "revoked_at",
+        ),
     ),
     ("role_types", ("id", "name", "description")),
     ("group_types", ("id", "name", "description")),
@@ -46,6 +68,26 @@ TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "notes",
         ),
     ),
+    ("permissions", ("id", "name", "description")),
+    ("access_roles", ("id", "name", "description", "is_global")),
+    (
+        "access_role_permissions",
+        ("access_role_id", "permission_id"),
+    ),
+    (
+        "user_access_role_assignments",
+        (
+            "id", "user_account_id", "access_role_id", "group_id", "start_date",
+            "end_date",
+        ),
+    ),
+    (
+        "audit_events",
+        (
+            "id", "user_account_id", "event_type", "outcome", "provider",
+            "subject", "ip_address", "user_agent", "details",
+        ),
+    ),
 )
 
 
@@ -63,7 +105,9 @@ def converter_for(table: str, column: str) -> Callable[[str], Any]:
         return UUID
     if column.endswith("_date"):
         return date.fromisoformat
-    if column == "can_login":
+    if column.endswith("_at"):
+        return datetime.fromisoformat
+    if column in {"can_login", "email_verified", "is_global"}:
         return parse_boolean
     return str
 

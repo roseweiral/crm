@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg import Connection
 
 from database import get_connection
+from authorization import AuthorizationService, get_authorization_service
 from models.family_units import (
     FamilyMember,
     FamilyUnit,
@@ -22,16 +23,24 @@ router = APIRouter(prefix="/family-units", tags=["family units"])
 def get_family_units(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> FamilyUnitPage:
     """Return one page of family units in stable UUID order."""
     offset = (page - 1) * page_size
+    where_clause = ""
+    parameters: list[Any] = []
+    # Only this fixed fragment is interpolated; every value remains a DB parameter.
+    scope = authorization.scope("family:view")
+    if not scope.unrestricted:
+        where_clause = "WHERE id = ANY(%s)"
+        parameters.append(list(scope.ids))
     total = connection.execute(
-        "SELECT count(*) AS total FROM family_units"
+        f"SELECT count(*) AS total FROM family_units {where_clause}", parameters
     ).fetchone()["total"]
     rows = connection.execute(
-        "SELECT id FROM family_units ORDER BY id LIMIT %s OFFSET %s",
-        (page_size, offset),
+        f"SELECT id FROM family_units {where_clause} ORDER BY id LIMIT %s OFFSET %s",
+        (*parameters, page_size, offset),
     ).fetchall()
 
     return FamilyUnitPage(
@@ -45,6 +54,7 @@ def get_family_units(
 @router.get("/{family_unit_id}", response_model=FamilyUnitDetail)
 def get_family_unit(
     family_unit_id: UUID,
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> FamilyUnitDetail:
     """Return a family unit with all associated members and relationships."""
@@ -56,7 +66,9 @@ def get_family_unit(
         """,
         (family_unit_id,),
     ).fetchone()
-    if family_unit is None:
+    if family_unit is None or (
+        not authorization.allows("family:view", family_unit_id)
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Family unit not found",

@@ -21,6 +21,18 @@ Enum contact_award_status {
   declined
 }
 
+Enum user_account_status {
+  invited
+  active
+  suspended
+  closed
+}
+
+Enum identity_provider {
+  google
+  microsoft
+}
+
 Table contacts {
   id uuid [pk, default: `gen_random_uuid()`]
   first_name varchar [not null]
@@ -30,6 +42,53 @@ Table contacts {
   can_login boolean [not null, default: false]
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
+}
+
+Table user_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null, unique]
+  status user_account_status [not null, default: 'invited']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+}
+
+Table user_identities {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_account_id uuid [not null, unique]
+  provider identity_provider [not null]
+  issuer varchar [not null]
+  subject varchar [not null]
+  email varchar [not null]
+  email_verified boolean [not null]
+  last_signed_in_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (issuer, subject) [unique]
+  }
+}
+
+Table invitations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_account_id uuid [not null]
+  invited_by_user_account_id uuid
+  email varchar [not null]
+  token_hash char(64) [not null, unique]
+  expires_at timestamptz [not null, default: `now() + interval '7 days'`]
+  accepted_at timestamptz
+  revoked_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table user_sessions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_account_id uuid [not null]
+  token_hash char(64) [not null, unique]
+  expires_at timestamptz [not null, default: `now() + interval '12 hours'`]
+  last_seen_at timestamptz [not null, default: `now()`]
+  revoked_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
 }
 
 Table role_types {
@@ -120,6 +179,56 @@ Table contact_awards {
   }
 }
 
+Table permissions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar [not null, unique]
+  description text
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+}
+
+Table access_roles {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar [not null, unique]
+  description text
+  is_global boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+}
+
+Table access_role_permissions {
+  access_role_id uuid [not null]
+  permission_id uuid [not null]
+
+  indexes {
+    (access_role_id, permission_id) [pk]
+  }
+}
+
+Table user_access_role_assignments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_account_id uuid [not null]
+  access_role_id uuid [not null]
+  group_id uuid
+  start_date date [not null, default: `current_date`]
+  end_date date
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+}
+
+Table audit_events {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_account_id uuid
+  event_type varchar [not null]
+  outcome varchar [not null]
+  provider identity_provider
+  subject varchar
+  ip_address inet
+  user_agent text
+  details jsonb [not null, default: `'{}'::jsonb`]
+  created_at timestamptz [not null, default: `now()`]
+}
+
 Ref: contact_roles_groups.contact_id > contacts.id
 Ref: contact_roles_groups.role_type_id > role_types.id
 Ref: contact_roles_groups.group_id > groups.id
@@ -129,3 +238,14 @@ Ref: contact_family_units.contact_id > contacts.id
 Ref: contact_family_units.family_unit_id > family_units.id
 Ref: contact_awards.contact_id > contacts.id
 Ref: contact_awards.award_type_id > award_types.id
+Ref: user_accounts.contact_id - contacts.id
+Ref: user_identities.user_account_id - user_accounts.id
+Ref: invitations.user_account_id > user_accounts.id
+Ref: invitations.invited_by_user_account_id > user_accounts.id
+Ref: user_sessions.user_account_id > user_accounts.id
+Ref: access_role_permissions.access_role_id > access_roles.id
+Ref: access_role_permissions.permission_id > permissions.id
+Ref: user_access_role_assignments.user_account_id > user_accounts.id
+Ref: user_access_role_assignments.access_role_id > access_roles.id
+Ref: user_access_role_assignments.group_id > groups.id
+Ref: audit_events.user_account_id > user_accounts.id

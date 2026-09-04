@@ -99,8 +99,8 @@ year and have no end date.
 Each anonymous family unit is identified only by a deterministic UUID. It has no
 stored name or assumed shared surname. Each unit receives one adult contact with
 the `parent` relationship and one child contact with the `child` relationship.
-Adults receive fictional email addresses; children do not. A small deterministic
-subset of adults has `can_login=true`.
+Every generated contact receives a unique fictional email address and has
+`can_login=true`, allowing every development identity to exercise authentication.
 
 ## Awards
 

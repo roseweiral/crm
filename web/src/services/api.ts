@@ -10,7 +10,7 @@ export interface Page<T> {
 const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, { signal });
+  const response = await fetch(`${apiUrl}${path}`, { signal, credentials: "include" });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { detail?: string } | null;
@@ -18,6 +18,37 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export interface CurrentUser {
+  account_id: string;
+  contact_id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  roles: Array<{ role: string; group: string | null }>;
+}
+
+export function getMe(signal?: AbortSignal): Promise<CurrentUser> {
+  return request<CurrentUser>("/api/v1/me", signal);
+}
+
+export async function signOut(): Promise<void> {
+  const response = await fetch(`${apiUrl}/auth/sign-out`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`Sign out failed with status ${response.status}`);
+  }
+}
+
+export function authenticationUrl(
+  provider: "google" | "microsoft",
+  invitation?: string | null,
+): string {
+  const query = invitation ? `?${new URLSearchParams({ invitation })}` : "";
+  return `${apiUrl}/auth/login/${provider}${query}`;
 }
 
 export function getCollection(
