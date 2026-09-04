@@ -22,7 +22,25 @@ for review, or updated with new commits. A newer run cancels an older in-progres
 review for the same pull request.
 
 The workflow does not run for draft pull requests. It has a 20-minute timeout and
-limits Claude to 15 turns.
+limits Claude to 8 turns.
+
+## Model and cost control
+
+Routine reviews are pinned to `claude-haiku-4-5-20251001`. Pinning the complete
+model ID makes cost and behavior more predictable than relying on Claude Code's
+changing default model.
+
+The workflow keeps alternative model lines as YAML comments immediately above
+`claude_args`:
+
+- `claude-sonnet-5` for balanced coding reviews;
+- `claude-opus-5` for complex or high-risk reviews;
+- `claude-fable-5-1` for the deepest long-horizon review.
+
+To change models, replace the active `--model` line inside `claude_args` with one
+of the commented alternatives. Keep exactly one model line active. Haiku should be
+the default for routine changes; consider a stronger model for authentication,
+permissions, security, major migrations, or complicated data-integrity work.
 
 ## Permissions and behavior
 
