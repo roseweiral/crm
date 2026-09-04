@@ -3,6 +3,10 @@
 A CRM for managing volunteers, young members, families, organisational groups,
 roles, and awards.
 
+The [project overview](documents/project-overview.md) describes the architecture.
+The [automated PR review guide](documents/automated-pr-review.md) explains the
+Anthropic review workflow and required repository secret.
+
 ## Local environment
 
 The Docker Compose environment contains three application services and two on-demand
@@ -13,6 +17,7 @@ test services:
 - `frontend`: the React development server
 - `api-tester`: pytest API and PostgreSQL tests
 - `e2e-tester`: Playwright browser tests
+- `e2e-report`: persistent local Playwright HTML report viewer
 
 Docker Compose reads the untracked `.env` file by default. This repository's local
 file is configured with `APP_ENV=development`.
