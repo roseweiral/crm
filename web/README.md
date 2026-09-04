@@ -4,8 +4,13 @@ This directory contains the React and TypeScript web application for the CRM.
 Vite provides the local development server inside the `frontend` Docker Compose
 service.
 
-The initial landing page displays “Hello World” and “Welcome to the New CRM”. Its
-browser contract is covered by the TypeScript Playwright test in `tests/e2e`.
+The current disposable data browser displays “Hello World” and “Welcome to the New
+CRM”, then provides paginated list and detail views for the main read-only API
+resources. Its intentionally retro visual treatment uses only local CSS: monospace
+type, terminal colours, hard borders, and offset shadows.
+
+This interface exists to exercise the API while the product design is still being
+formed. It is expected to be replaced rather than treated as the final CRM design.
 
 Build and type-check the frontend through its Docker image:
 

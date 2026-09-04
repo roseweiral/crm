@@ -32,6 +32,7 @@ green.
 
 ```text
 crm/
+├── .github/workflows/   Pull-request automation
 ├── app/                 FastAPI application
 ├── database/            PostgreSQL creation and data tooling
 ├── documents/           Architecture and project documentation
@@ -53,8 +54,9 @@ The `app/` directory contains the FastAPI service:
 - `models/` contains Pydantic API models.
 - `routers/` contains versioned HTTP endpoints.
 
-Routes live beneath `/api/v1`. The initial implemented routes are the health check,
-paginated contact listing, and individual contact lookup.
+Routes live beneath `/api/v1`. The current read-only API serves contacts, family
+units, role types, group types, groups, and contact role/group assignments through
+paginated collection and individual detail endpoints.
 
 ### Database
 
@@ -80,6 +82,7 @@ The `documents/` directory contains project and architectural decisions rather
 than executable deployment files:
 
 - `database/db.dbml` is the visual and conceptual database model.
+- `automated-pr-review.md` explains the Anthropic pull-request reviewer.
 - `demo-data.md` describes demo generation rules and commands.
 - `project-overview.md` is this high-level introduction.
 
@@ -92,9 +95,18 @@ The `web/` directory contains the React application. Vite supplies its developme
 server and build tooling. The source is organized into components, features, pages,
 API services, and shared styles as those areas are introduced.
 
-The frontend will consume the versioned FastAPI endpoints. Playwright will exercise
-complete user journeys through a real browser, while component-level tests can live
-beside React components when needed.
+The frontend consumes the versioned FastAPI endpoints. Its current retro-styled data
+browser is a disposable integration aid with list, detail, and pagination views.
+Playwright will exercise complete user journeys through a real browser, while
+component-level tests can live beside React components when needed.
+
+### Pull-request automation
+
+GitHub Actions discovers workflows beneath `.github/workflows`. The Claude PR
+Review workflow asks Anthropic's Claude Code Action to review non-draft pull
+requests and post prioritized findings without changing code or approving the PR.
+It requires the repository Actions secret `ANTHROPIC_API_KEY`; operational details
+are maintained in `documents/automated-pr-review.md`.
 
 ## Technology choices
 

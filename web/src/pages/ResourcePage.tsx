@@ -54,7 +54,7 @@ export function ResourcePage({ resource, onHome }: ResourcePageProps) {
 
   return (
     <main>
-      <nav aria-label="Page navigation">
+      <nav className="toolbar" aria-label="Page navigation">
         <button className="secondary" onClick={onHome} type="button">Home</button>
         {selected && (
           <button className="secondary" onClick={() => setSelected(null)} type="button">
@@ -63,6 +63,7 @@ export function ResourcePage({ resource, onHome }: ResourcePageProps) {
         )}
       </nav>
 
+      <p className="eyebrow">Database browser // Online</p>
       <h1>{selected ? `${resource.title} Detail` : resource.title}</h1>
 
       {loading && <p role="status">Loading…</p>}
