@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg import Connection
 
 from database import get_connection
+from authorization import AuthorizationScope, get_authorization_scope
 from models.contact_role_groups import (
     ContactRoleGroup,
     ContactRoleGroupDetail,
@@ -42,6 +43,7 @@ def get_contact_role_groups(
     contact_id: UUID | None = Query(default=None),
     group_id: UUID | None = Query(default=None),
     role_type_id: UUID | None = Query(default=None),
+    scope: AuthorizationScope = Depends(get_authorization_scope),
     connection: Connection[Any] = Depends(get_connection),
 ) -> ContactRoleGroupPage:
     """Return one page of role/group assignments in stable date order."""
@@ -56,6 +58,9 @@ def get_contact_role_groups(
         if value is not None:
             filters.append(f"crg.{column} = %s")
             parameters.append(value)
+    if not scope.is_global_administrator:
+        filters.append("crg.contact_id = ANY(%s)")
+        parameters.append(list(scope.contact_ids))
     where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
 
     total = connection.execute(
@@ -84,6 +89,7 @@ def get_contact_role_groups(
 @router.get("/{contact_role_group_id}", response_model=ContactRoleGroupDetail)
 def get_contact_role_group(
     contact_role_group_id: UUID,
+    scope: AuthorizationScope = Depends(get_authorization_scope),
     connection: Connection[Any] = Depends(get_connection),
 ) -> ContactRoleGroupDetail:
     """Return one contact role/group assignment by UUID."""
@@ -95,7 +101,10 @@ def get_contact_role_group(
         """,
         (contact_role_group_id,),
     ).fetchone()
-    if row is None:
+    if row is None or (
+        not scope.is_global_administrator
+        and row["contact_id"] not in scope.contact_ids
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contact role group not found",

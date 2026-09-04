@@ -21,8 +21,9 @@ HQ
 Contacts can hold different roles in different groups over defined periods. Award
 records preserve nomination and presentation history. The longer-term product will
 identify signed-in users and restrict information and actions according to their
-permissions and place in the organisation. Authentication and authorization are
-deliberately deferred while the first local, read-only product slices are built.
+permissions and place in the organisation. Authentication now uses invitation-only
+Google or Microsoft OpenID Connect sign-in. Authorization scopes reads through
+explicit access roles, the organisational hierarchy, and family relationships.
 
 Development follows test-driven development: define the expected behavior in a
 failing test, implement the smallest useful change, and then confirm the suite is
@@ -54,9 +55,13 @@ The `app/` directory contains the FastAPI service:
 - `models/` contains Pydantic API models.
 - `routers/` contains versioned HTTP endpoints.
 
-Routes live beneath `/api/v1`. The current read-only API serves contacts, family
+Routes live beneath `/api/v1`. The authenticated read-only API serves contacts, family
 units, role types, group types, groups, and contact role/group assignments through
 paginated collection and individual detail endpoints.
+
+FastAPI owns the OIDC callback and exchanges provider identities for revocable,
+server-side CRM sessions. Provider tokens are never stored in the browser. Health and
+authentication entry points remain public; CRM data endpoints require a session.
 
 ### Database
 

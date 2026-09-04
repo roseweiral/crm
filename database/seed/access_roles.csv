@@ -1,0 +1,3 @@
+id,name,description,is_global
+20000000-0000-4000-8000-000000000002,Global System Administrator,Read all CRM information across the organisation,true
+20000000-0000-4000-8000-000000000003,Organisational Reader,Read CRM information for an assigned group and descendants,false

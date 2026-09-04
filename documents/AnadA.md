@@ -6,6 +6,11 @@ This document records the initial design decisions for authentication (AuthN) an
 authorization (AuthZ) in the Volunteer CRM. It is a living design document; open
 questions should be resolved here before implementation begins.
 
+The account, identity, invitation, session, Google/Microsoft OIDC, fake-provider,
+endpoint protection, audit, and initial read-authorization foundations are now
+implemented. Detailed write permissions and the remaining family and multi-group
+edge cases must be resolved before write endpoints are introduced.
+
 ## Agreed principles
 
 - CRM access is invitation-only. Signing in successfully with an external provider

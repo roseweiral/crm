@@ -12,11 +12,7 @@ def populate(context: DemoContext) -> int:
         first_name = context.fake.first_name()
         last_name = context.fake.last_name()
         is_adult = contact_number <= adult_count
-        email = (
-            f"{first_name}.{last_name}@crm-seed-data.abc".lower()
-            if is_adult
-            else None
-        )
+        email = f"{first_name}.{last_name}.{contact_number}@crm-seed-data.abc".lower()
 
         rows.append(
             {
@@ -25,7 +21,7 @@ def populate(context: DemoContext) -> int:
                 "last_name": last_name,
                 "email": email,
                 "status": "active",
-                "can_login": is_adult and contact_number % 5 == 0,
+                "can_login": True,
             }
         )
 

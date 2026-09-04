@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg import Connection
 
 from database import get_connection
+from authorization import AuthorizationScope, get_authorization_scope
 from models.family_units import (
     FamilyMember,
     FamilyUnit,
@@ -22,16 +23,22 @@ router = APIRouter(prefix="/family-units", tags=["family units"])
 def get_family_units(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
+    scope: AuthorizationScope = Depends(get_authorization_scope),
     connection: Connection[Any] = Depends(get_connection),
 ) -> FamilyUnitPage:
     """Return one page of family units in stable UUID order."""
     offset = (page - 1) * page_size
+    where_clause = ""
+    parameters: list[Any] = []
+    if not scope.is_global_administrator:
+        where_clause = "WHERE id = ANY(%s)"
+        parameters.append(list(scope.family_unit_ids))
     total = connection.execute(
-        "SELECT count(*) AS total FROM family_units"
+        f"SELECT count(*) AS total FROM family_units {where_clause}", parameters
     ).fetchone()["total"]
     rows = connection.execute(
-        "SELECT id FROM family_units ORDER BY id LIMIT %s OFFSET %s",
-        (page_size, offset),
+        f"SELECT id FROM family_units {where_clause} ORDER BY id LIMIT %s OFFSET %s",
+        (*parameters, page_size, offset),
     ).fetchall()
 
     return FamilyUnitPage(
@@ -45,6 +52,7 @@ def get_family_units(
 @router.get("/{family_unit_id}", response_model=FamilyUnitDetail)
 def get_family_unit(
     family_unit_id: UUID,
+    scope: AuthorizationScope = Depends(get_authorization_scope),
     connection: Connection[Any] = Depends(get_connection),
 ) -> FamilyUnitDetail:
     """Return a family unit with all associated members and relationships."""
@@ -56,7 +64,10 @@ def get_family_unit(
         """,
         (family_unit_id,),
     ).fetchone()
-    if family_unit is None:
+    if family_unit is None or (
+        not scope.is_global_administrator
+        and family_unit_id not in scope.family_unit_ids
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Family unit not found",

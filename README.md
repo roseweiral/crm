@@ -9,12 +9,13 @@ Anthropic review workflow and required repository secret.
 
 ## Local environment
 
-The Docker Compose environment contains three application services and two on-demand
+The Docker Compose environment contains four application services and two on-demand
 test services:
 
 - `database`: the disposable PostgreSQL database
 - `app`: the FastAPI application
 - `frontend`: the React development server
+- `fake-oidc`: the development/test OpenID Connect provider
 - `api-tester`: pytest API and PostgreSQL tests
 - `e2e-tester`: Playwright browser tests
 - `e2e-report`: persistent local Playwright HTML report viewer

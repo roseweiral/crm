@@ -161,6 +161,34 @@ nav,
   padding-bottom: 1.25rem;
 }
 
+.session-toolbar {
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto 1rem;
+  max-width: 72rem;
+}
+
+.session-toolbar span {
+  font-weight: 700;
+}
+
+.session-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+}
+
+.session-roles li {
+  border: 2px solid #173f3a;
+  background: #edf1e8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+}
+
 .resource-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));

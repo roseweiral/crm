@@ -9,6 +9,8 @@ from datetime import date
 from pathlib import Path
 
 from demo import (
+    authentication,
+    authorization,
     award_types,
     contact_awards,
     contact_family_units,
@@ -28,11 +30,13 @@ DEMO_DATA_MODULES: tuple[Callable[[DemoContext], int], ...] = (
     group_types.populate,
     award_types.populate,
     contacts.populate,
+    authentication.populate,
     family_units.populate,
     groups.populate,
     contact_roles_groups.populate,
     contact_family_units.populate,
     contact_awards.populate,
+    authorization.populate,
 )
 
 DEMO_DATA_ENVIRONMENTS = {"development", "test"}

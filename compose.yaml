@@ -26,6 +26,14 @@ services:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       CORS_ORIGINS: http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT},http://0.0.0.0:${FRONTEND_PORT}
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      OIDC_GOOGLE_METADATA_URL: ${OIDC_GOOGLE_METADATA_URL}
+      OIDC_GOOGLE_CLIENT_ID: ${OIDC_GOOGLE_CLIENT_ID}
+      OIDC_GOOGLE_CLIENT_SECRET: ${OIDC_GOOGLE_CLIENT_SECRET}
+      OIDC_MICROSOFT_METADATA_URL: ${OIDC_MICROSOFT_METADATA_URL}
+      OIDC_MICROSOFT_CLIENT_ID: ${OIDC_MICROSOFT_CLIENT_ID}
+      OIDC_MICROSOFT_CLIENT_SECRET: ${OIDC_MICROSOFT_CLIENT_SECRET}
     ports:
       - "${APP_PORT}:8000"
     volumes:
@@ -42,6 +50,26 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
         ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  fake-oidc:
+    build:
+      context: ./fake_oidc
+    environment:
+      FAKE_OIDC_ISSUER: ${FAKE_OIDC_ISSUER}
+      FAKE_OIDC_BROWSER_BASE_URL: ${FAKE_OIDC_BROWSER_BASE_URL}
+      FAKE_OIDC_INTERNAL_BASE_URL: http://fake-oidc:9000
+      FAKE_OIDC_CLIENT_ID: ${FAKE_OIDC_CLIENT_ID}
+      FAKE_OIDC_CLIENT_SECRET: ${FAKE_OIDC_CLIENT_SECRET}
+    ports:
+      - "${FAKE_OIDC_PORT}:9000"
+    volumes:
+      - ./database/seed/contacts.csv:/seed/contacts.csv:ro
+    profiles: ["development", "test"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
       interval: 2s
       timeout: 5s
       retries: 15
@@ -82,6 +110,8 @@ services:
       database:
         condition: service_healthy
       app:
+        condition: service_healthy
+      fake-oidc:
         condition: service_healthy
     profiles: ["test"]
     command: ["sh", "-c", "python /database/demo_data.py --replace && python tests/api/run_tests.py"]
