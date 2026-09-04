@@ -7,7 +7,7 @@ import shlex
 import subprocess
 
 
-DEFAULT_CATEGORIES = "smoke,contract"
+DEFAULT_CATEGORIES = "smoke,contract,regression"
 
 
 def configured_categories() -> list[str]:

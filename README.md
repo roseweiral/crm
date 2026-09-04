@@ -35,7 +35,8 @@ docker compose run --rm --build api-tester
 ```
 
 The configured categories run in order and stop on the first failing category.
-The default sequence is `smoke,contract`.
+The default sequence is `smoke,contract,regression`. See
+[`tests/README.md`](tests/README.md) for category details and selection options.
 
 Run the browser tests:
 
