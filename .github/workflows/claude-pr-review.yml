@@ -22,7 +22,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write
 
     steps:
       - name: Check out repository
@@ -34,6 +33,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           track_progress: true
 
           prompt: |
@@ -95,6 +95,11 @@ jobs:
             If there are no actionable findings, clearly say:
             "No actionable findings."
 
+          # Keep exactly one --model line active inside claude_args.
+          # Balanced coding review: --model claude-sonnet-5
+          # Complex/high-risk review: --model claude-opus-5
+          # Deepest long-horizon review: --model claude-fable-5-1
           claude_args: |
-            --max-turns 15
+            --model claude-haiku-4-5-20251001
+            --max-turns 8
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

@@ -15,7 +15,7 @@ export function HomePage({ resources, onSelect }: HomePageProps) {
         </div>
         <p className="eyebrow">Volunteer CRM // System ready</p>
         <h1>Hello World</h1>
-        <p className="welcome">Welcome to the New CRM</p>
+        <p className="welcome">Welcome to the New FAB CRM</p>
       </header>
 
       <section className="query-panel" aria-labelledby="queries-heading">
