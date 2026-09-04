@@ -152,15 +152,17 @@ scaffold ready for feature development.
 
 ### Pytest
 
-Pytest verifies the environment, database access, and HTTP contracts. API tests are
-grouped with registered markers and run in an explicit sequence. The default is:
+Pytest verifies the environment, database access, HTTP contracts, and stable API
+behavior. API tests are grouped with registered markers and run in an explicit
+sequence. The default is:
 
 ```text
-smoke → contract
+smoke → contract → regression
 ```
 
 If a category fails, later categories do not run. More categories can be registered
-in `tests/api/pytest.ini` and added to `API_TEST_CATEGORIES`.
+in `tests/api/pytest.ini` and added to `API_TEST_CATEGORIES`. The category purposes
+and run options are documented in [`tests/README.md`](../tests/README.md).
 
 ### Playwright
 

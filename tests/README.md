@@ -13,8 +13,21 @@ Endpoint work follows test-driven development: contract tests are added and obse
 failing before the corresponding FastAPI implementation is written.
 
 API categories run sequentially in the order defined by `API_TEST_CATEGORIES`.
-The default is `smoke,contract`. A failing category stops the run, so endpoint tests
-are skipped when the environment smoke tests fail. Register new markers in
+The default is `smoke,contract,regression`. A failing category stops the run, so
+later and more expensive tests are skipped when an earlier category fails:
+
+1. `smoke` confirms that the API and database are reachable.
+2. `contract` confirms the shape and status codes of each endpoint.
+3. `regression` confirms pagination, filtering, relationships, and stable demo-data
+   expectations.
+
+Categories can be selected or reordered for one run, for example:
+
+```shell
+API_TEST_CATEGORIES=smoke,regression docker compose run --rm --build api-tester
+```
+
+Extra pytest options can be passed through `PYTEST_ARGS`. Register new markers in
 `api/pytest.ini` before adding them to the configured sequence.
 
 ## Playwright report
