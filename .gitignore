@@ -209,6 +209,9 @@ tempCodeRunnerFile.py
 # JavaScript dependencies and build output
 node_modules/
 web/dist/
+tests/e2e/node_modules/
+tests/e2e/playwright-report/
+tests/e2e/test-results/
 
 # Ruff stuff:
 .ruff_cache/

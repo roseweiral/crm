@@ -5,12 +5,14 @@ roles, and awards.
 
 ## Local environment
 
-The Docker Compose environment contains four services:
+The Docker Compose environment contains three application services and two on-demand
+test services:
 
 - `database`: the disposable PostgreSQL database
 - `app`: the FastAPI application
 - `frontend`: the React development server
-- `tester`: on-demand environment and application tests
+- `api-tester`: pytest API and PostgreSQL tests
+- `e2e-tester`: Playwright browser tests
 
 Docker Compose reads the untracked `.env` file by default. This repository's local
 file is configured with `APP_ENV=development`.
@@ -21,10 +23,19 @@ Start the application:
 docker compose up --build
 ```
 
-Run the tests:
+Run the API tests:
 
 ```shell
-docker compose run --rm tester
+docker compose run --rm --build api-tester
+```
+
+The configured categories run in order and stop on the first failing category.
+The default sequence is `smoke,contract`.
+
+Run the browser tests:
+
+```shell
+docker compose run --rm e2e-tester
 ```
 
 Import the CSV seed data:
@@ -59,7 +70,7 @@ docker compose down --volumes
 
 When PostgreSQL starts with a new development or test database volume, it automatically
 applies the schema and then imports every seed CSV. Existing volumes are left alone.
-The tester also invokes the demo-data runner before executing the tests.
+The API tester also invokes the demo-data runner before executing the tests.
 
 ## Environment configuration
 

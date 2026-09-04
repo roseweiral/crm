@@ -4,6 +4,10 @@ import os
 
 import httpx
 import psycopg
+import pytest
+
+
+pytestmark = pytest.mark.smoke
 
 
 def test_database_is_available() -> None:
