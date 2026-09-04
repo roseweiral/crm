@@ -30,6 +30,7 @@ def get_family_units(
     offset = (page - 1) * page_size
     where_clause = ""
     parameters: list[Any] = []
+    # Only this fixed fragment is interpolated; every value remains a DB parameter.
     scope = authorization.scope("family:view")
     if not scope.unrestricted:
         where_clause = "WHERE id = ANY(%s)"

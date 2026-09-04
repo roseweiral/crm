@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
 import secrets
 from uuid import UUID
@@ -11,6 +10,8 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+
+from authentication import hash_secret_token
 
 
 def main() -> None:
@@ -61,7 +62,7 @@ def main() -> None:
         )
         connection.execute(
             "INSERT INTO invitations (user_account_id, email, token_hash) VALUES (%s, %s, %s)",
-            (account["id"], contact["email"].lower(), hashlib.sha256(raw_token.encode()).hexdigest()),
+            (account["id"], contact["email"].lower(), hash_secret_token(raw_token)),
         )
         connection.execute(
             "INSERT INTO audit_events (user_account_id, event_type, outcome, details) VALUES (%s, 'administrator.bootstrap', 'success', %s)",

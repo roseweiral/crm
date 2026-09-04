@@ -137,7 +137,11 @@ class AuthorizationService:
         for rule in action_policy.rules:
             if rule.source == "authenticated" and rule.scope == "all":
                 return ResourceScope(unrestricted=True)
-            if rule.source == "access_role" and rule.relationship in self.access_roles:
+            elif rule.source == "access_role":
+                # Keep access-role handling as a complete branch. If scoped access
+                # roles are supported later they cannot silently fall through.
+                if rule.relationship not in self.access_roles:
+                    continue
                 if rule.scope == "all":
                     return ResourceScope(unrestricted=True)
             elif rule.source == "self" and rule.scope == "self":

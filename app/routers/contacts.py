@@ -28,6 +28,7 @@ def get_contacts(
 
     where_clause = ""
     parameters: list[Any] = []
+    # Only this fixed fragment is interpolated; every value remains a DB parameter.
     scope = authorization.scope("contact:view")
     if not scope.unrestricted:
         where_clause = "WHERE id = ANY(%s)"

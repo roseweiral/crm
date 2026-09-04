@@ -21,7 +21,7 @@ from authentication import (
     get_current_user,
     oauth,
     session_cookie_options,
-    token_hash,
+    hash_secret_token,
 )
 from database import get_connection
 from authorization import AuthorizationService, get_authorization_service
@@ -142,7 +142,7 @@ async def auth_callback(
               AND expires_at > now()
             FOR UPDATE
             """,
-            (token_hash(invitation_token),),
+            (hash_secret_token(invitation_token),),
         ).fetchone()
         if invitation is None or invitation["email"] != email:
             raise HTTPException(status_code=403, detail="Invitation is invalid")
@@ -166,6 +166,8 @@ async def auth_callback(
         account_id = invitation["user_account_id"]
     else:
         account_id = identity["user_account_id"]
+        # One identity is allowed per account and these fields are idempotent.
+        # Account-linking will require a locked, separately designed flow.
         connection.execute(
             """
             UPDATE user_identities
@@ -293,7 +295,7 @@ def create_invitation(
           user_account_id, invited_by_user_account_id, email, token_hash
         ) VALUES (%s, %s, %s, %s)
         """,
-        (account["id"], authorization.user.account_id, contact["email"].lower(), token_hash(raw_token)),
+        (account["id"], authorization.user.account_id, contact["email"].lower(), hash_secret_token(raw_token)),
     )
     audit_event(
         connection,

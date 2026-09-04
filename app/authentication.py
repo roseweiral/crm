@@ -6,7 +6,7 @@ import hashlib
 import os
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -19,6 +19,8 @@ from database import get_connection
 
 
 SESSION_COOKIE = "crm_session"
+SESSION_LIFETIME = timedelta(hours=12)
+OIDC_PROVIDERS = ("google", "microsoft")
 oauth = OAuth()
 
 
@@ -48,7 +50,7 @@ def _provider_configuration(provider: str) -> dict[str, str] | None:
 
 def configure_oidc() -> None:
     """Register enabled providers from environment configuration."""
-    for provider in ("google", "microsoft"):
+    for provider in OIDC_PROVIDERS:
         configuration = _provider_configuration(provider)
         if configuration is None or oauth.create_client(provider) is not None:
             continue
@@ -66,12 +68,13 @@ def configure_oidc() -> None:
 def enabled_providers() -> list[str]:
     return [
         provider
-        for provider in ("google", "microsoft")
+        for provider in OIDC_PROVIDERS
         if _provider_configuration(provider) is not None
     ]
 
 
-def token_hash(token: str) -> str:
+def hash_secret_token(token: str) -> str:
+    """Hash a high-entropy session or invitation secret for safe persistence."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
@@ -79,11 +82,11 @@ def create_session(connection: Connection[Any], account_id: UUID) -> tuple[str, 
     raw_token = secrets.token_urlsafe(48)
     row = connection.execute(
         """
-        INSERT INTO user_sessions (user_account_id, token_hash)
-        VALUES (%s, %s)
+        INSERT INTO user_sessions (user_account_id, token_hash, expires_at)
+        VALUES (%s, %s, now() + %s)
         RETURNING id
         """,
-        (account_id, token_hash(raw_token)),
+        (account_id, hash_secret_token(raw_token), SESSION_LIFETIME),
     ).fetchone()
     return raw_token, row["id"]
 
@@ -149,7 +152,7 @@ def get_current_user(
           AND ua.status = 'active'
           AND c.status <> 'archived'
         """,
-        (token_hash(raw_token),),
+        (hash_secret_token(raw_token),),
     ).fetchone()
     if row is None:
         raise HTTPException(
@@ -170,7 +173,7 @@ def session_cookie_options() -> dict[str, Any]:
         "httponly": True,
         "secure": os.environ.get("APP_ENV") == "production",
         "samesite": "lax",
-        "max_age": 12 * 60 * 60,
+        "max_age": int(SESSION_LIFETIME.total_seconds()),
         "path": "/",
     }
 

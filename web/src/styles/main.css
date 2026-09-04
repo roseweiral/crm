@@ -189,6 +189,13 @@ nav,
   padding: 0.2rem 0.45rem;
 }
 
+.session-error {
+  color: #9c351f;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0;
+}
+
 .resource-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));

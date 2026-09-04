@@ -10,6 +10,7 @@ export function App() {
   const [selectedResource, setSelectedResource] = useState<ResourceDefinition | null>(null);
   const [user, setUser] = useState<CurrentUser | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -35,11 +36,14 @@ export function App() {
 
   async function switchUser() {
     setSigningOut(true);
+    setSignOutError(null);
     try {
       await signOut();
       setSelectedResource(null);
       setUser(null);
       window.history.replaceState({}, "", window.location.pathname);
+    } catch {
+      setSignOutError("We could not sign you out. Please try again.");
     } finally {
       setSigningOut(false);
     }
@@ -54,6 +58,7 @@ export function App() {
             <li key={`${role}:${group ?? ""}`}>{group ? `${role} — ${group}` : role}</li>
           ))}
         </ul>
+        {signOutError && <p className="session-error" role="alert">{signOutError}</p>}
       </div>
       <button className="secondary" disabled={signingOut} onClick={() => void switchUser()} type="button">
         {signingOut ? "Signing out…" : "Switch user"}

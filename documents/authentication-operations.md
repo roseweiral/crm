@@ -11,6 +11,9 @@ single-use invitation whose normalized email matches the provider's verified ema
 Provider tokens are not returned to React. FastAPI creates a random CRM session,
 stores only its SHA-256 hash, and gives the browser a secure HTTP-only cookie. Sessions
 expire after 12 hours and can be revoked. Invitations expire after seven days.
+The application uses one `SESSION_LIFETIME` value for both the persisted expiry and
+cookie lifetime. The database retains the same 12-hour default as a safety net, with
+a contract test guarding against drift.
 
 The public endpoints are `/health`, `/auth/providers`, `/auth/login/{provider}`, and
 `/auth/callback/{provider}`. All `/api/v1` CRM data endpoints require authentication,
@@ -27,6 +30,11 @@ assignments are excluded.
 ## Provider configuration
 
 The environment templates document these values for each provider:
+
+Google and Microsoft are the deliberately fixed provider catalogue for this release.
+Adding another provider requires adding it to `OIDC_PROVIDERS` and explicitly
+defining how that provider proves an email address; environment variables alone do
+not enable an unknown provider.
 
 - `OIDC_GOOGLE_METADATA_URL`, `OIDC_GOOGLE_CLIENT_ID`, and
   `OIDC_GOOGLE_CLIENT_SECRET`;
