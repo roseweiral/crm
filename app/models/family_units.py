@@ -1,5 +1,6 @@
 """Family-unit API response models."""
 
+from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -25,6 +26,8 @@ class FamilyMember(BaseModel):
 
 
 class FamilyUnitDetail(FamilyUnit):
+    created_at: datetime
+    modified_at: datetime
     members: list[FamilyMember]
 
 

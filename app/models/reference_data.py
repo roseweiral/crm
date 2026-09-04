@@ -1,5 +1,6 @@
 """Role-type, group-type, and group API response models."""
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -19,9 +20,29 @@ class GroupType(NamedReference):
     pass
 
 
+class NamedReferenceDetail(NamedReference):
+    created_at: datetime
+    modified_at: datetime
+
+
+class RoleTypeDetail(NamedReferenceDetail):
+    pass
+
+
+class GroupTypeDetail(NamedReferenceDetail):
+    pass
+
+
 class Group(NamedReference):
     group_type_id: UUID
+    group_type_name: str
     parent_id: UUID | None
+    parent_name: str | None
+
+
+class GroupDetail(Group):
+    created_at: datetime
+    modified_at: datetime
 
 
 class RoleTypePage(BaseModel):

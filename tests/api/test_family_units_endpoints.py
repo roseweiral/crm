@@ -21,7 +21,14 @@ def test_get_family_units_returns_first_page() -> None:
 
 
 def test_get_family_unit_returns_all_members_and_relationships() -> None:
-    family_unit = database_rows("SELECT id FROM family_units ORDER BY id LIMIT 1")[0]
+    family_unit = database_rows(
+        """
+        SELECT id, created_at, modified_at
+        FROM family_units
+        ORDER BY id
+        LIMIT 1
+        """
+    )[0]
     members = database_rows(
         """
         SELECT
@@ -43,7 +50,7 @@ def test_get_family_unit_returns_all_members_and_relationships() -> None:
 
     assert response.status_code == 200
     assert response.json() == {
-        "id": str(family_unit["id"]),
+        **serialise(family_unit),
         "members": serialise(members),
     }
 

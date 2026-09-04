@@ -36,13 +36,6 @@ RESOURCE_CONTRACTS = (
         order_by="name, id",
         not_found_detail="Group type not found",
     ),
-    ResourceContract(
-        path="/api/v1/groups",
-        table="groups",
-        columns=("id", "group_type_id", "name", "description", "parent_id"),
-        order_by="name, id",
-        not_found_detail="Group not found",
-    ),
 )
 
 
@@ -58,7 +51,7 @@ def test_get_resource_returns_first_page(resource: ResourceContract) -> None:
 
 @pytest.mark.parametrize("resource", RESOURCE_CONTRACTS, ids=lambda item: item.table)
 def test_get_resource_by_id_returns_matching_record(resource: ResourceContract) -> None:
-    selected_columns = ", ".join(resource.columns)
+    selected_columns = ", ".join((*resource.columns, "created_at", "modified_at"))
     record = database_rows(
         f"SELECT {selected_columns} FROM {resource.table} ORDER BY id LIMIT 1"
     )[0]
@@ -82,5 +75,73 @@ def test_get_resource_returns_404_for_unknown_uuid(resource: ResourceContract) -
 @pytest.mark.parametrize("resource", RESOURCE_CONTRACTS, ids=lambda item: item.table)
 def test_get_resource_rejects_malformed_uuid(resource: ResourceContract) -> None:
     response = httpx.get(f"{API_URL}{resource.path}/not-a-uuid", timeout=5)
+
+    assert response.status_code == 422
+
+
+GROUP_COLUMNS = """
+  g.id,
+  g.group_type_id,
+  gt.name AS group_type_name,
+  g.name,
+  g.description,
+  g.parent_id,
+  parent.name AS parent_name
+"""
+
+
+def test_get_groups_returns_names_for_group_type_and_parent() -> None:
+    expected = database_rows(
+        f"""
+        SELECT {GROUP_COLUMNS}
+        FROM groups g
+        JOIN group_types gt ON gt.id = g.group_type_id
+        LEFT JOIN groups parent ON parent.id = g.parent_id
+        ORDER BY g.name, g.id
+        LIMIT 25
+        """
+    )
+    total = database_rows("SELECT count(*) AS total FROM groups")[0]["total"]
+
+    response = httpx.get(f"{API_URL}/api/v1/groups", timeout=5)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": serialise(expected),
+        "page": 1,
+        "page_size": 25,
+        "total": total,
+    }
+
+
+def test_get_group_by_id_returns_names_and_timestamps() -> None:
+    group = database_rows(
+        f"""
+        SELECT {GROUP_COLUMNS}, g.created_at, g.modified_at
+        FROM groups g
+        JOIN group_types gt ON gt.id = g.group_type_id
+        LEFT JOIN groups parent ON parent.id = g.parent_id
+        ORDER BY g.id
+        LIMIT 1
+        """
+    )[0]
+
+    response = httpx.get(f"{API_URL}/api/v1/groups/{group['id']}", timeout=5)
+
+    assert response.status_code == 200
+    assert response.json() == serialise(group)
+
+
+def test_get_group_returns_404_for_unknown_uuid() -> None:
+    unknown_id = UUID("00000000-0000-0000-0000-000000000000")
+
+    response = httpx.get(f"{API_URL}/api/v1/groups/{unknown_id}", timeout=5)
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Group not found"}
+
+
+def test_get_group_rejects_malformed_uuid() -> None:
+    response = httpx.get(f"{API_URL}/api/v1/groups/not-a-uuid", timeout=5)
 
     assert response.status_code == 422

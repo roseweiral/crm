@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg import Connection
 
 from database import get_connection
-from models.contacts import Contact, ContactPage
+from models.contacts import Contact, ContactDetail, ContactPage
 
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
@@ -45,14 +45,18 @@ def get_contacts(
     )
 
 
-@router.get("/{contact_id}", response_model=Contact)
+@router.get("/{contact_id}", response_model=ContactDetail)
 def get_contact(
     contact_id: UUID,
     connection: Connection[Any] = Depends(get_connection),
-) -> Contact:
+) -> ContactDetail:
     """Return a contact by UUID."""
     row = connection.execute(
-        f"SELECT {CONTACT_COLUMNS} FROM contacts WHERE id = %s",
+        f"""
+        SELECT {CONTACT_COLUMNS}, created_at, modified_at
+        FROM contacts
+        WHERE id = %s
+        """,
         (contact_id,),
     ).fetchone()
 
@@ -62,4 +66,4 @@ def get_contact(
             detail="Contact not found",
         )
 
-    return Contact.model_validate(row)
+    return ContactDetail.model_validate(row)

@@ -49,7 +49,12 @@ def get_family_unit(
 ) -> FamilyUnitDetail:
     """Return a family unit with all associated members and relationships."""
     family_unit = connection.execute(
-        "SELECT id FROM family_units WHERE id = %s", (family_unit_id,)
+        """
+        SELECT id, created_at, modified_at
+        FROM family_units
+        WHERE id = %s
+        """,
+        (family_unit_id,),
     ).fetchone()
     if family_unit is None:
         raise HTTPException(
@@ -74,5 +79,7 @@ def get_family_unit(
 
     return FamilyUnitDetail(
         id=family_unit["id"],
+        created_at=family_unit["created_at"],
+        modified_at=family_unit["modified_at"],
         members=[FamilyMember.model_validate(row) for row in rows],
     )

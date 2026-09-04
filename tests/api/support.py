@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -23,6 +23,8 @@ def database_rows(query: str, parameters: tuple[Any, ...] = ()) -> list[dict[str
 
 
 def serialise(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat().replace("+00:00", "Z")
     if isinstance(value, (UUID, date, Enum)):
         return str(value)
     if isinstance(value, dict):

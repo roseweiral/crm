@@ -1,5 +1,6 @@
 """Contact API response models."""
 
+from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
@@ -19,6 +20,11 @@ class Contact(BaseModel):
     email: str | None
     status: ContactStatus
     can_login: bool
+
+
+class ContactDetail(Contact):
+    created_at: datetime
+    modified_at: datetime
 
 
 class ContactPage(BaseModel):
