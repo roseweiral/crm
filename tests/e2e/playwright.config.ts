@@ -6,7 +6,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   retries: 1,
-  reporter: "line",
+  reporter: [
+    ["line"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+  ],
   use: {
     baseURL: process.env.FRONTEND_URL,
     trace: "on-first-retry",
