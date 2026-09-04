@@ -29,8 +29,12 @@ limits Claude to 15 turns.
 The job receives:
 
 - read access to repository contents;
-- write access to pull-request comments;
-- an OIDC identity token required by the default Claude GitHub integration.
+- write access to pull-request comments.
+
+The action receives the workflow's built-in, short-lived `GITHUB_TOKEN`. This
+allows it to read the pull request and post review comments without requiring the
+Claude GitHub App to be installed. Comments therefore appear from
+`github-actions[bot]` rather than `claude[bot]`.
 
 The review prompt explicitly prohibits code changes, commits, pushes, merges, and
 approvals. Allowed tools are limited to reading PR details and diffs and posting
@@ -48,5 +52,6 @@ TypeScript, or Playwright checks and does not count as a formal PR approval.
 5. Confirm that Claude posts a summary and, when applicable, inline findings.
 
 If the check is absent, first confirm the workflow is present beneath
-`.github/workflows` in the pull request. If it fails at authentication, verify the
-secret name and the repository's permission to run GitHub Actions.
+`.github/workflows` in the pull request. If Anthropic authentication fails, verify
+the `ANTHROPIC_API_KEY` secret. The repository's built-in `GITHUB_TOKEN` requires no
+separate secret or Claude GitHub App installation.
