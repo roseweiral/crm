@@ -25,6 +25,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT},http://0.0.0.0:${FRONTEND_PORT}
     ports:
       - "${APP_PORT}:8000"
     volumes:

@@ -2,6 +2,7 @@
   color: #17231b;
   background: #f4f1e8;
   font-family: system-ui, sans-serif;
+  line-height: 1.5;
 }
 
 body {
@@ -9,7 +10,143 @@ body {
 }
 
 main {
-  max-width: 48rem;
-  margin: 8rem auto;
-  padding: 0 2rem;
+  max-width: 64rem;
+  margin: 4rem auto;
+  padding: 0 1.5rem 4rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 7vw, 4.5rem);
+}
+
+h2 {
+  margin-top: 3rem;
+}
+
+.eyebrow {
+  margin-bottom: 0.5rem;
+  color: #496453;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.welcome {
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+}
+
+button {
+  border: 0;
+  border-radius: 0.5rem;
+  background: #24563a;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+}
+
+button:hover {
+  background: #173d28;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button.secondary {
+  background: #dfe7df;
+  color: #17231b;
+}
+
+nav,
+.resource-grid,
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.results {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.results button {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.results button span {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.pagination {
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.record-details {
+  border-top: 1px solid #b9c7bb;
+}
+
+.detail-row {
+  border-bottom: 1px solid #b9c7bb;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(10rem, 1fr) 3fr;
+  padding: 0.8rem 0;
+}
+
+dt {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.nested-record {
+  border-left: 3px solid #91a896;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+}
+
+.empty-value {
+  color: #68756b;
+  font-style: italic;
+}
+
+.error {
+  border-left: 4px solid #a72e2e;
+  color: #7b1515;
+  padding-left: 1rem;
+}
+
+@media (max-width: 40rem) {
+  main {
+    margin-top: 2rem;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+  }
 }
