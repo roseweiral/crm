@@ -24,7 +24,7 @@ from authentication import (
     token_hash,
 )
 from database import get_connection
-from authorization import AuthorizationScope, get_authorization_scope
+from authorization import AuthorizationService, get_authorization_service
 
 
 router = APIRouter(tags=["authentication"])
@@ -253,11 +253,10 @@ def me(
 def create_invitation(
     payload: InvitationCreate,
     request: Request,
-    scope: AuthorizationScope = Depends(get_authorization_scope),
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> InvitationResponse:
-    if not scope.is_global_administrator:
-        raise HTTPException(status_code=403, detail="Global administrator access required")
+    authorization.require("invitation:create")
     contact = connection.execute(
         "SELECT id, email, status FROM contacts WHERE id = %s",
         (payload.contact_id,),
@@ -294,14 +293,14 @@ def create_invitation(
           user_account_id, invited_by_user_account_id, email, token_hash
         ) VALUES (%s, %s, %s, %s)
         """,
-        (account["id"], scope.user.account_id, contact["email"].lower(), token_hash(raw_token)),
+        (account["id"], authorization.user.account_id, contact["email"].lower(), token_hash(raw_token)),
     )
     audit_event(
         connection,
         request,
         "invitation.created",
         "success",
-        account_id=scope.user.account_id,
+        account_id=authorization.user.account_id,
         details={"invited_contact_id": str(payload.contact_id)},
     )
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")

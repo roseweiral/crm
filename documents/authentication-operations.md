@@ -86,6 +86,11 @@ email checks used for real providers.
 
 ## Current authorization rules
 
+The application evaluates these rules through `AuthorizationService`. Its active,
+human-readable policy is `app/policies/authorization.toml`; PostgreSQL remains the
+source of truth for the roles, dates, hierarchy, and family relationships referenced
+by that policy.
+
 - The seeded first contact has an explicit Global System Administrator assignment and
   can read all CRM information.
 - Current Group Leader and Area Manager assignments can read contacts and groups in

@@ -1,0 +1,131 @@
+# Volunteer CRM authorization policy
+#
+# This file says what signed-in people may do. It does not store who belongs to a
+# group or family; those facts remain in PostgreSQL. Every rule reads as:
+# "When this relationship is true, grant this action over this scope."
+#
+# Supported scopes:
+#   all               every record of this kind
+#   group_descendants the assigned group and every group below it
+#   family            family units, or contacts in those family units
+#   self              the signed-in person's own contact record
+
+version = 1
+
+[actions."contact:view"]
+description = "View a person's CRM contact record."
+resource = "contact"
+
+[[actions."contact:view".rules]]
+# System administrators can view every contact.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact:view".rules]]
+# Area Managers can view contacts with active roles in their area or a group below it.
+source = "group_role"
+relationship = "Area Manager"
+scope = "group_descendants"
+
+[[actions."contact:view".rules]]
+# Group Leaders can view contacts with active roles in their group or a group below it.
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_descendants"
+
+[[actions."contact:view".rules]]
+# Parents can view every contact connected to one of their family units.
+source = "family_relationship"
+relationship = "Parent"
+scope = "family"
+
+[[actions."contact:view".rules]]
+# Every signed-in person can view their own contact record, including children.
+source = "self"
+scope = "self"
+
+[actions."contact-role:view"]
+description = "View a person's organisational role and group assignments."
+resource = "contact"
+
+[[actions."contact-role:view".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact-role:view".rules]]
+source = "group_role"
+relationship = "Area Manager"
+scope = "group_descendants"
+
+[[actions."contact-role:view".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_descendants"
+
+[[actions."contact-role:view".rules]]
+source = "family_relationship"
+relationship = "Parent"
+scope = "family"
+
+[[actions."contact-role:view".rules]]
+source = "self"
+scope = "self"
+
+[actions."family:view"]
+description = "View a family unit and the people connected to it."
+resource = "family"
+
+[[actions."family:view".rules]]
+# System administrators can view every family.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."family:view".rules]]
+# Parents can view family units to which they are connected as a parent.
+source = "family_relationship"
+relationship = "Parent"
+scope = "family"
+
+[actions."group:view"]
+description = "View an organisational group."
+resource = "group"
+
+[[actions."group:view".rules]]
+# System administrators can view the entire organisational structure.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."group:view".rules]]
+# Managers can view their area and every group below it.
+source = "group_role"
+relationship = "Area Manager"
+scope = "group_descendants"
+
+[[actions."group:view".rules]]
+# Leaders can view their group and every group below it.
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_descendants"
+
+[actions."reference-data:view"]
+description = "View shared role and group type definitions."
+resource = "reference-data"
+
+[[actions."reference-data:view".rules]]
+# Reference definitions contain no personal records, so every signed-in user may see them.
+source = "authenticated"
+scope = "all"
+
+[actions."invitation:create"]
+description = "Invite an existing CRM contact to become an application user."
+resource = "invitation"
+
+[[actions."invitation:create".rules]]
+# Inviting users is initially reserved for Global System Administrators.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"

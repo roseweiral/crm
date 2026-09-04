@@ -89,6 +89,8 @@ than executable deployment files:
 - `database/db.dbml` is the visual and conceptual database model.
 - `automated-pr-review.md` explains the Anthropic pull-request reviewer.
 - `demo-data.md` describes demo generation rules and commands.
+- `authorization-architecture.md` defines the PostgreSQL membership boundary,
+  application authorization interface, and future OpenFGA direction.
 - `project-overview.md` is this high-level introduction.
 
 The DBML model and `database/schema.sql` should remain synchronized whenever the

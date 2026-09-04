@@ -4,6 +4,8 @@ A CRM for managing volunteers, young members, families, organisational groups,
 roles, and awards.
 
 The [project overview](documents/project-overview.md) describes the architecture.
+The [authorization architecture](documents/authorization-architecture.md) records
+the permission model and future OpenFGA boundary.
 The [automated PR review guide](documents/automated-pr-review.md) explains the
 Anthropic review workflow and required repository secret.
 

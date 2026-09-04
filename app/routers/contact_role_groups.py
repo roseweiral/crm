@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from psycopg import Connection
 
 from database import get_connection
-from authorization import AuthorizationScope, get_authorization_scope
+from authorization import AuthorizationService, get_authorization_service
 from models.contact_role_groups import (
     ContactRoleGroup,
     ContactRoleGroupDetail,
@@ -43,7 +43,7 @@ def get_contact_role_groups(
     contact_id: UUID | None = Query(default=None),
     group_id: UUID | None = Query(default=None),
     role_type_id: UUID | None = Query(default=None),
-    scope: AuthorizationScope = Depends(get_authorization_scope),
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> ContactRoleGroupPage:
     """Return one page of role/group assignments in stable date order."""
@@ -58,9 +58,10 @@ def get_contact_role_groups(
         if value is not None:
             filters.append(f"crg.{column} = %s")
             parameters.append(value)
-    if not scope.is_global_administrator:
+    scope = authorization.scope("contact-role:view")
+    if not scope.unrestricted:
         filters.append("crg.contact_id = ANY(%s)")
-        parameters.append(list(scope.contact_ids))
+        parameters.append(list(scope.ids))
     where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
 
     total = connection.execute(
@@ -89,7 +90,7 @@ def get_contact_role_groups(
 @router.get("/{contact_role_group_id}", response_model=ContactRoleGroupDetail)
 def get_contact_role_group(
     contact_role_group_id: UUID,
-    scope: AuthorizationScope = Depends(get_authorization_scope),
+    authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> ContactRoleGroupDetail:
     """Return one contact role/group assignment by UUID."""
@@ -102,8 +103,7 @@ def get_contact_role_group(
         (contact_role_group_id,),
     ).fetchone()
     if row is None or (
-        not scope.is_global_administrator
-        and row["contact_id"] not in scope.contact_ids
+        not authorization.allows("contact-role:view", row["contact_id"])
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

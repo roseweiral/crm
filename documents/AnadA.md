@@ -140,6 +140,10 @@ every protected endpoint will enforce its own policy.
 
 ## Authorization direction
 
+The detailed authorization architecture, including the boundary between PostgreSQL
+membership facts and a future OpenFGA policy engine, is recorded in
+[authorization-architecture.md](authorization-architecture.md).
+
 Authorization decisions answer both what a user may do and where they may do it.
 Access is expected to be composed from:
 

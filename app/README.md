@@ -18,6 +18,11 @@ Authentication endpoints include:
 - `POST /auth/sign-out`
 - `POST /api/v1/invitations` (Global System Administrator only)
 
+Authorization decisions go through `AuthorizationService` in `authorization.py`.
+The commented `policies/authorization.toml` file defines which access roles,
+organisational roles, and family relationships grant each action. PostgreSQL owns
+the underlying membership facts; the policy file controls what those facts allow.
+
 Google and Microsoft use OpenID Connect authorization code flow with PKCE. Provider
 tokens remain on the server and are exchanged for a revocable CRM session cookie.
 Authorization scope is calculated from the explicit Global System Administrator
