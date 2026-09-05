@@ -1,9 +1,12 @@
 """Demo user accounts and fake-provider identities without durable sessions."""
 
+import os
+
 from demo.context import DemoContext
 
 
 def populate(context: DemoContext) -> int:
+    issuer = os.environ.get("FAKE_OIDC_ISSUER", "http://fake-oidc:9000")
     accounts = [
         {
             "id": context.stable_uuid("user-account", contact["id"]),
@@ -19,7 +22,7 @@ def populate(context: DemoContext) -> int:
             "id": context.stable_uuid("user-identity", contact["id"]),
             "user_account_id": context.stable_uuid("user-account", contact["id"]),
             "provider": "google",
-            "issuer": "http://fake-oidc:9000",
+            "issuer": issuer,
             "subject": str(contact["id"]),
             "email": contact["email"],
             "email_verified": True,

@@ -1,0 +1,129 @@
+name: volunteer-crm-test
+
+services:
+  database:
+    build:
+      context: ./database
+    environment:
+      APP_ENV: test
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  demo-loader:
+    build:
+      context: ./app
+      target: production
+    environment:
+      APP_ENV: test
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      FAKE_OIDC_ISSUER: https://${TEST_OIDC_HOST}
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      database:
+        condition: service_healthy
+    command:
+      - python
+      - /database/demo_data.py
+      - --initialize
+      - --contacts
+      - "180"
+      - --families
+      - "45"
+      - --groups
+      - "18"
+    restart: "no"
+
+  app:
+    build:
+      context: ./app
+      target: production
+    environment:
+      APP_ENV: test
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      CORS_ORIGINS: https://${TEST_APP_HOST}
+      FRONTEND_URL: https://${TEST_APP_HOST}
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      OIDC_GOOGLE_METADATA_URL: http://fake-oidc:9000/.well-known/openid-configuration
+      OIDC_GOOGLE_CLIENT_ID: ${FAKE_OIDC_CLIENT_ID}
+      OIDC_GOOGLE_CLIENT_SECRET: ${FAKE_OIDC_CLIENT_SECRET}
+    depends_on:
+      demo-loader:
+        condition: service_completed_successfully
+      fake-oidc:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  fake-oidc:
+    build:
+      context: ./fake_oidc
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      FAKE_OIDC_ISSUER: https://${TEST_OIDC_HOST}
+      FAKE_OIDC_BROWSER_BASE_URL: https://${TEST_OIDC_HOST}
+      FAKE_OIDC_INTERNAL_BASE_URL: http://fake-oidc:9000
+      FAKE_OIDC_CLIENT_ID: ${FAKE_OIDC_CLIENT_ID}
+      FAKE_OIDC_CLIENT_SECRET: ${FAKE_OIDC_CLIENT_SECRET}
+      FAKE_OIDC_ALLOWED_REDIRECT_URI: https://${TEST_APP_HOST}/auth/callback/google
+    depends_on:
+      demo-loader:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./web
+      target: production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  gateway:
+    image: caddy:2.10.2-alpine
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      TEST_APP_HOST: ${TEST_APP_HOST}
+      TEST_OIDC_HOST: ${TEST_OIDC_HOST}
+      TEST_GATE_PASSWORD_HASH: ${TEST_GATE_PASSWORD_HASH}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deployment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  test_postgres_data:
+  caddy_data:
+  caddy_config:

@@ -16,7 +16,10 @@ from authentication import get_current_user
 
 app = FastAPI(title="Volunteer CRM API")
 auth_session_secret = os.environ.get("AUTH_SESSION_SECRET")
-if os.environ.get("APP_ENV") == "production" and (
+secure_cookies = os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {
+    "1", "true", "yes", "on"
+} or os.environ.get("APP_ENV") == "production"
+if secure_cookies and (
     not auth_session_secret or len(auth_session_secret) < 32
 ):
     raise RuntimeError("AUTH_SESSION_SECRET must contain at least 32 characters")
@@ -26,7 +29,7 @@ app.add_middleware(
     session_cookie="crm_oidc",
     max_age=600,
     same_site="lax",
-    https_only=os.environ.get("APP_ENV") == "production",
+    https_only=secure_cookies,
 )
 app.add_middleware(
     CORSMiddleware,

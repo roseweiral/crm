@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import jwt
+import psycopg
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -25,6 +26,8 @@ BROWSER_BASE_URL = os.environ.get("FAKE_OIDC_BROWSER_BASE_URL", ISSUER)
 INTERNAL_BASE_URL = os.environ.get("FAKE_OIDC_INTERNAL_BASE_URL", "http://fake-oidc:9000")
 CLIENT_ID = os.environ.get("FAKE_OIDC_CLIENT_ID", "volunteer-crm")
 CLIENT_SECRET = os.environ.get("FAKE_OIDC_CLIENT_SECRET", "fake-oidc-development-secret")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+ALLOWED_REDIRECT_URI = os.environ.get("FAKE_OIDC_ALLOWED_REDIRECT_URI")
 KEY_ID = "fake-oidc-key"
 PRIVATE_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
@@ -37,7 +40,18 @@ class Identity:
     email_verified: bool = True
 
 
-def seeded_identities() -> list[Identity]:
+def configured_identities() -> list[Identity]:
+    if DATABASE_URL:
+        with psycopg.connect(DATABASE_URL) as connection:
+            rows = connection.execute(
+                """
+                SELECT id, email, first_name, last_name
+                FROM contacts
+                WHERE can_login = true AND email IS NOT NULL AND status <> 'archived'
+                ORDER BY first_name, last_name, id
+                """
+            ).fetchall()
+        return [Identity(str(row[0]), row[1], f"{row[2]} {row[3]}") for row in rows]
     seed_path = Path(os.environ.get("FAKE_OIDC_CONTACTS_CSV", "/seed/contacts.csv"))
     if not seed_path.is_file():
         return []
@@ -53,11 +67,16 @@ def seeded_identities() -> list[Identity]:
         ]
 
 
-IDENTITIES = {
-    identity.subject: identity
-    for identity in seeded_identities()
-}
 AUTHORIZATION_CODES: dict[str, dict[str, str]] = {}
+
+
+def identities() -> dict[str, Identity]:
+    return {identity.subject: identity for identity in configured_identities()}
+
+
+def validate_redirect_uri(redirect_uri: str) -> None:
+    if ALLOWED_REDIRECT_URI and redirect_uri != ALLOWED_REDIRECT_URI:
+        raise HTTPException(status_code=400, detail="Invalid redirect URI")
 
 
 def b64uint(value: int) -> str:
@@ -103,12 +122,14 @@ def authorize(
 ) -> HTMLResponse | RedirectResponse:
     if client_id != CLIENT_ID or response_type != "code" or code_challenge_method != "S256":
         raise HTTPException(status_code=400, detail="Invalid authorization request")
+    validate_redirect_uri(redirect_uri)
+    available_identities = identities()
     parameters = {"client_id": client_id, "redirect_uri": redirect_uri, "state": state, "nonce": nonce, "code_challenge": code_challenge}
-    if login_hint and login_hint in IDENTITIES:
+    if login_hint and login_hint in available_identities:
         return issue_code(login_hint, **parameters)
     buttons = "".join(
         f'<button name="subject" value="{html.escape(item.subject)}">{html.escape(item.name)} — {html.escape(item.email)}</button><br>'
-        for item in IDENTITIES.values()
+        for item in available_identities.values()
     )
     hidden = "".join(
         f'<input type="hidden" name="{name}" value="{html.escape(value)}">'
@@ -126,7 +147,8 @@ def authorize_choice(
 
 
 def issue_code(subject: str, client_id: str, redirect_uri: str, state: str, nonce: str, code_challenge: str) -> RedirectResponse:
-    if subject not in IDENTITIES or client_id != CLIENT_ID:
+    validate_redirect_uri(redirect_uri)
+    if subject not in identities() or client_id != CLIENT_ID:
         raise HTTPException(status_code=400, detail="Unknown test identity")
     code = secrets.token_urlsafe(32)
     AUTHORIZATION_CODES[code] = {"subject": subject, "client_id": client_id, "redirect_uri": redirect_uri, "nonce": nonce, "code_challenge": code_challenge}
@@ -145,7 +167,7 @@ def token(
     challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).rstrip(b"=").decode()
     if grant_type != "authorization_code" or client_secret != CLIENT_SECRET or attempt is None or attempt["client_id"] != client_id or attempt["redirect_uri"] != redirect_uri or not secrets.compare_digest(challenge, attempt["code_challenge"]):
         raise HTTPException(status_code=400, detail="Invalid token request")
-    identity = IDENTITIES[attempt["subject"]]
+    identity = identities()[attempt["subject"]]
     now = int(time.time())
     claims = {"iss": ISSUER, "sub": identity.subject, "aud": client_id, "iat": now, "exp": now + 300, "nonce": attempt["nonce"], "email": identity.email, "email_verified": identity.email_verified, "name": identity.name}
     id_token = jwt.encode(claims, PRIVATE_KEY, algorithm="RS256", headers={"kid": KEY_ID})

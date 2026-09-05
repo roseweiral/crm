@@ -8,6 +8,8 @@ The [authorization architecture](documents/authorization-architecture.md) record
 the permission model and future OpenFGA boundary.
 The [automated PR review guide](documents/automated-pr-review.md) explains the
 Anthropic review workflow and required repository secret.
+The [internet-facing test deployment guide](documents/test-deployment.md) records
+the test infrastructure decisions and deployment procedure.
 
 ## Local environment
 
