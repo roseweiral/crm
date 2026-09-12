@@ -23,8 +23,6 @@
 }
 
 {$TEST_OIDC_HOST} {
-	import test_gate
-
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer

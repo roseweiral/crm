@@ -160,6 +160,19 @@ ENV/
 env.bak/
 venv.bak/
 
+# Terraform local state and runtime inputs
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 # Spyder project settings
 .spyderproject
 .spyproject

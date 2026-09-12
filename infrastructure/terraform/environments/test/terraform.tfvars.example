@@ -1,0 +1,12 @@
+server_type     = "cx23"
+server_location = "nbg1"
+server_image    = "ubuntu-24.04"
+
+application_domain = "crm-test.roseweir.com"
+oidc_domain        = "login.crm-test.roseweir.com"
+
+code_repository_url = "https://github.com/roseweiral/crm.git"
+code_repository_ref = "Infra-Test"
+
+enable_backups = false
+protect_server = false
