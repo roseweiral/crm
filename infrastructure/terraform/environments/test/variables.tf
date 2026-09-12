@@ -40,8 +40,9 @@ variable "ssh_public_key" {
 }
 
 variable "ssh_allowed_cidrs" {
-  description = "Trusted SSH source CIDRs injected through TF_VAR_ssh_allowed_cidrs."
+  description = "Networks allowed to connect over SSH. Test permits key-only SSH from the internet for GitHub-hosted deployments."
   type        = list(string)
+  default     = ["0.0.0.0/0", "::/0"]
 
   validation {
     condition     = length(var.ssh_allowed_cidrs) > 0
@@ -71,16 +72,4 @@ variable "oidc_domain" {
   description = "Public DNS hostname for the test fake OIDC provider."
   type        = string
   default     = "login.crm-test.roseweir.com"
-}
-
-variable "code_repository_url" {
-  description = "Git repository used by the test deployment step."
-  type        = string
-  default     = "https://github.com/roseweiral/crm.git"
-}
-
-variable "code_repository_ref" {
-  description = "Git branch, tag, or commit deployed to test."
-  type        = string
-  default     = "Infra-Test"
 }
