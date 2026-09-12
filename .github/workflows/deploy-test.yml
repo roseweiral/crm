@@ -3,7 +3,7 @@ name: Deploy test environment
 on:
   push:
     branches:
-      - Infra-Test
+      - dev
   workflow_dispatch:
 
 concurrency:
@@ -194,4 +194,3 @@ jobs:
             echo "Expected the password gate to return HTTP 401; received ${status}. DNS may still need updating." >&2
             exit 1
           fi
-

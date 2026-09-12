@@ -1,0 +1,103 @@
+name: Destroy test environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type destroy-test to delete the VPS, its IPs, and all test data
+        required: true
+        type: string
+
+concurrency:
+  group: volunteer-crm-test
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy test infrastructure
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: test
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_VAR_ssh_public_key: ${{ vars.SSH_PUBLIC_KEY }}
+      TERRAFORM_DIRECTORY: infrastructure/terraform/environments/test
+
+    steps:
+      - name: Check confirmation
+        env:
+          DESTROY_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [[ "${DESTROY_CONFIRMATION}" != "destroy-test" ]]; then
+            echo "Confirmation did not exactly match destroy-test; nothing was deleted." >&2
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Check Terraform credentials
+        run: |
+          required=(HCLOUD_TOKEN TF_TOKEN_app_terraform_io TF_VAR_ssh_public_key)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing GitHub test environment secret or variable: ${name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.2
+          terraform_wrapper: false
+
+      - name: Initialise and validate Terraform
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: |
+          terraform init -input=false
+          terraform validate
+
+      - name: Record addresses being removed
+        id: previous
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: |
+          echo "server_ipv4=$(terraform output -raw server_ipv4 2>/dev/null || true)" >> "${GITHUB_OUTPUT}"
+          echo "server_ipv6=$(terraform output -raw server_ipv6 2>/dev/null || true)" >> "${GITHUB_OUTPUT}"
+
+      - name: Plan destruction
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: terraform plan -destroy -input=false -out=destroy.tfplan
+
+      - name: Destroy infrastructure
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: terraform apply -input=false -auto-approve destroy.tfplan
+
+      - name: Summarise cleanup
+        env:
+          PREVIOUS_IPV4: ${{ steps.previous.outputs.server_ipv4 }}
+          PREVIOUS_IPV6: ${{ steps.previous.outputs.server_ipv6 }}
+        run: |
+          {
+            echo "## Test environment destroyed"
+            echo
+            echo "Terraform deleted the server, firewall, SSH-key registration, and primary IP resources."
+            echo "The Hetzner project, its API token, HCP state workspace, and GitHub environment secrets remain."
+            echo
+            echo "Remove the Bluehost A and AAAA records if they still point to:"
+            echo
+            echo '```text'
+            echo "IPv4: ${PREVIOUS_IPV4:-not previously allocated}"
+            echo "IPv6: ${PREVIOUS_IPV6:-not previously allocated}"
+            echo '```'
+            echo
+            echo "All database and Docker-volume data on the deleted server is permanently lost."
+          } >> "${GITHUB_STEP_SUMMARY}"
+

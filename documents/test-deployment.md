@@ -109,13 +109,13 @@ hostname only; the clear text password is not stored in the deployment environme
 
 ### Automatic deployment from GitHub
 
-`.github/workflows/deploy-test.yml` runs for every push to `Infra-Test` and can
+`.github/workflows/deploy-test.yml` runs for every push to `dev` and can
 also be started manually. It applies non-destructive Terraform changes, waits for
 cloud-init, checks out the exact pushed commit on the server, installs the
 application environment file, builds the Compose stack, and verifies its health.
 
 Create a GitHub environment named `test`, restrict its deployment branch to
-`Infra-Test`, and add these environment secrets:
+`dev`, and add these environment secrets:
 
 - `HCLOUD_TOKEN`: read/write token for the Hetzner project;
 - `TF_API_TOKEN`: HCP Terraform user or team token;
@@ -144,6 +144,31 @@ retrying certificate issuance.
 The workflow reconstructs `.env.test-deployment` from GitHub secrets on every
 deployment. It does not print that file or place application secrets in Terraform
 state.
+
+The intended development flow is:
+
+1. Develop and run Docker locally on a feature branch.
+2. Open a pull request targeting `dev`; the Claude review workflow reviews that
+   pull request.
+3. Merge the pull request into `dev`; the resulting push provisions or reconciles
+   the VPS and deploys that exact merge commit to the test environment.
+
+### Destroy the test environment
+
+Use the **Destroy test environment** workflow under GitHub Actions when the test
+VPS is no longer needed. Run it from the `dev` branch and enter the exact
+confirmation `destroy-test`. The workflow runs a saved Terraform destroy plan and
+removes the server, primary IPv4 and IPv6 addresses, firewall, SSH-key
+registration, Docker volumes, and all data stored on that server.
+
+The destroy operation retains the Hetzner project and API token, HCP Terraform
+workspace and state history, and GitHub `test` environment configuration. The next
+push to `dev` can therefore build a new environment. Remove the old Bluehost A and
+AAAA records after destruction; a later deployment may receive different
+addresses, which are printed in its workflow summary.
+
+Never delete the Terraform-managed server directly in the Hetzner console unless
+recovering from a failed Terraform operation, because doing so creates state drift.
 
 ### Manual deployment
 

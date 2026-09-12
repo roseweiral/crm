@@ -94,6 +94,11 @@ Destroying the test stack deletes the server and primary IP resources. Any appli
 database stored only on that server is consequently lost. `protect_server=true`
 must be changed and applied before Terraform can destroy a protected server.
 
+The normal remote operation is the manually triggered GitHub Actions workflow
+**Destroy test environment**. Run it from `dev` and enter `destroy-test`. It leaves
+the Hetzner project, API token, HCP workspace, and GitHub secrets intact so the
+next push to `dev` can create a fresh environment.
+
 ## Deliberate boundaries
 
 - Test and production use different Terraform roots and state files. Never switch
