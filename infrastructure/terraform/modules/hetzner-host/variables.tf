@@ -72,33 +72,3 @@ variable "deployment_directory" {
     error_message = "The deployment directory must be an absolute path."
   }
 }
-
-variable "application_domain" {
-  description = "Public DNS hostname for the application."
-  type        = string
-
-  validation {
-    condition     = can(regex("^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$", var.application_domain))
-    error_message = "Supply a lower-case DNS hostname without a scheme or path."
-  }
-}
-
-variable "oidc_domain" {
-  description = "Public DNS hostname for the environment's OIDC provider."
-  type        = string
-
-  validation {
-    condition     = can(regex("^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$", var.oidc_domain))
-    error_message = "Supply a lower-case DNS hostname without a scheme or path."
-  }
-}
-
-variable "code_repository_url" {
-  description = "Git repository used by the application deployment step."
-  type        = string
-}
-
-variable "code_repository_ref" {
-  description = "Git branch, tag, or commit deployed to the environment."
-  type        = string
-}

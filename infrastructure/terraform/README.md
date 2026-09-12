@@ -25,30 +25,31 @@ procedure then installs `.env.test-deployment` and starts `compose.test.yaml`.
 
 ## Prerequisites
 
-- Terraform 1.8 or later
+- Terraform 1.16.2
+- Access to the `alroseweir/volunteer-crm-test` HCP Terraform workspace
 - A Hetzner Cloud project
 - A read/write API token scoped to that project
 - An existing SSH key pair
 - Access to the Bluehost-managed DNS for `roseweir.com`
 
 Do not place API tokens, private SSH keys, database passwords, session secrets, or
-the test-gate password in Terraform files. Terraform state is local by default and
-must not be committed.
+the test-gate password in Terraform files. Test state is stored and locked in HCP
+Terraform and must not be committed.
 
 ## Runtime configuration
 
 The Hetzner provider reads its token directly from `HCLOUD_TOKEN`. Supply the SSH
-public key and trusted SSH source networks using Terraform environment variables:
+public key using a Terraform environment variable:
 
 ```shell
 export HCLOUD_TOKEN="replace-with-project-api-token"
 export TF_VAR_ssh_public_key="$(ssh-keygen -y -f /path/to/private-key)"
-export TF_VAR_ssh_allowed_cidrs='["203.0.113.10/32"]'
 ```
 
-The private key remains outside Terraform. Replace the example address with the
-public IPv4 or IPv6 CIDR from which administration will occur. A `/32` restricts
-IPv4 SSH access to one address; a `/128` does the equivalent for IPv6.
+The private key remains outside Terraform. The test environment intentionally
+allows SSH from all IPv4 and IPv6 addresses so GitHub-hosted runners can deploy;
+password authentication and root login remain disabled, and the private key is
+stored as a GitHub environment secret.
 
 Copy `environments/test/terraform.tfvars.example` to
 `environments/test/terraform.tfvars` and set the non-secret deployment values.
@@ -64,6 +65,10 @@ terraform validate
 terraform plan
 terraform apply
 ```
+
+Run `terraform login` before the first local operation. The HCP workspace must use
+**Local execution mode**: HCP stores and locks state while Terraform runs in the
+operator's terminal or GitHub-hosted runner.
 
 Review every plan before applying it. Creating resources begins Hetzner billing.
 After apply, Terraform outputs the server addresses, SSH command, public URLs, and

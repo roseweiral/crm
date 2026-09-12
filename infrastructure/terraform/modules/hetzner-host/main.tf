@@ -98,9 +98,5 @@ resource "hcloud_server" "this" {
     deployment_user      = var.deployment_user
     deployment_directory = var.deployment_directory
     ssh_public_key       = trimspace(var.ssh_public_key)
-    application_domain   = var.application_domain
-    oidc_domain          = var.oidc_domain
-    code_repository_url  = var.code_repository_url
-    code_repository_ref  = var.code_repository_ref
   })
 }

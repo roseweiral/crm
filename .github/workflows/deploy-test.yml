@@ -1,0 +1,197 @@
+name: Deploy test environment
+
+on:
+  push:
+    branches:
+      - Infra-Test
+  workflow_dispatch:
+
+concurrency:
+  group: volunteer-crm-test
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Provision and deploy test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: test
+      url: https://crm-test.roseweir.com
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_VAR_ssh_public_key: ${{ vars.SSH_PUBLIC_KEY }}
+      TERRAFORM_DIRECTORY: infrastructure/terraform/environments/test
+      DEPLOYMENT_DIRECTORY: /opt/volunteer-crm
+      TEST_APP_HOST: crm-test.roseweir.com
+      TEST_OIDC_HOST: login.crm-test.roseweir.com
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Check deployment configuration
+        env:
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          TEST_GATE_PASSWORD_HASH: ${{ secrets.TEST_GATE_PASSWORD_HASH }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          AUTH_SESSION_SECRET: ${{ secrets.AUTH_SESSION_SECRET }}
+          FAKE_OIDC_CLIENT_SECRET: ${{ secrets.FAKE_OIDC_CLIENT_SECRET }}
+        run: |
+          required=(
+            HCLOUD_TOKEN TF_TOKEN_app_terraform_io TF_VAR_ssh_public_key
+            ACME_EMAIL SSH_PRIVATE_KEY TEST_GATE_PASSWORD_HASH
+            POSTGRES_PASSWORD AUTH_SESSION_SECRET FAKE_OIDC_CLIENT_SECRET
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing GitHub test environment secret or variable: ${name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.2
+          terraform_wrapper: false
+
+      - name: Initialise and validate Terraform
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: |
+          terraform init -input=false
+          terraform fmt -check -recursive ../..
+          terraform validate
+
+      - name: Plan infrastructure
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: terraform plan -input=false -out=test.tfplan
+
+      - name: Reject destructive infrastructure changes
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: |
+          terraform show -json test.tfplan > test.tfplan.json
+          if jq -e 'any(.resource_changes[]?; (.change.actions | index("delete")) != null)' test.tfplan.json >/dev/null; then
+            echo "Terraform proposed a deletion or replacement. Apply it manually after review." >&2
+            exit 1
+          fi
+
+      - name: Apply infrastructure
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: terraform apply -input=false -auto-approve test.tfplan
+
+      - name: Read deployment address
+        id: infrastructure
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        run: |
+          echo "server_ipv4=$(terraform output -raw server_ipv4)" >> "${GITHUB_OUTPUT}"
+          {
+            echo "## Test DNS records"
+            echo
+            echo '```text'
+            terraform output -json required_ipv4_dns_records | jq -r 'to_entries[] | "A     \(.key)  \(.value)"'
+            terraform output -json required_ipv6_dns_records | jq -r 'to_entries[] | "AAAA  \(.key)  \(.value)"'
+            echo '```'
+            echo
+            echo "Update Bluehost if these values differ from the current records."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Configure deployment SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ steps.infrastructure.outputs.server_ipv4 }}
+        run: |
+          install -d -m 700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" > "${HOME}/.ssh/test_deployment"
+          chmod 600 "${HOME}/.ssh/test_deployment"
+          for attempt in {1..60}; do
+            if ssh-keyscan -T 5 -H "${DEPLOY_HOST}" >> "${HOME}/.ssh/known_hosts" 2>/dev/null; then
+              break
+            fi
+            [[ "${attempt}" == "60" ]] && exit 1
+            sleep 5
+          done
+
+      - name: Wait for host bootstrap
+        env:
+          DEPLOY_HOST: ${{ steps.infrastructure.outputs.server_ipv4 }}
+        run: |
+          ssh -i "${HOME}/.ssh/test_deployment" -o IdentitiesOnly=yes \
+            "deploy@${DEPLOY_HOST}" cloud-init status --wait
+
+      - name: Check out exact revision on server
+        env:
+          DEPLOY_HOST: ${{ steps.infrastructure.outputs.server_ipv4 }}
+          DEPLOY_REPOSITORY: https://github.com/${{ github.repository }}.git
+          DEPLOY_REVISION: ${{ github.sha }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          ssh -i "${HOME}/.ssh/test_deployment" -o IdentitiesOnly=yes \
+            "deploy@${DEPLOY_HOST}" bash -s -- \
+            "${DEPLOYMENT_DIRECTORY}" "${DEPLOY_REPOSITORY}" "${DEPLOY_BRANCH}" "${DEPLOY_REVISION}" <<'REMOTE'
+          set -Eeuo pipefail
+          directory="$1"
+          repository="$2"
+          branch="$3"
+          revision="$4"
+          if [[ ! -d "${directory}/.git" ]]; then
+            git clone --no-checkout "${repository}" "${directory}"
+          fi
+          cd "${directory}"
+          git remote set-url origin "${repository}"
+          git fetch --force --prune origin "${branch}"
+          git checkout --detach --force "${revision}"
+          REMOTE
+
+      - name: Create test environment file
+        env:
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          TEST_GATE_PASSWORD_HASH: ${{ secrets.TEST_GATE_PASSWORD_HASH }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          AUTH_SESSION_SECRET: ${{ secrets.AUTH_SESSION_SECRET }}
+          FAKE_OIDC_CLIENT_SECRET: ${{ secrets.FAKE_OIDC_CLIENT_SECRET }}
+        run: |
+          umask 077
+          {
+            printf 'TEST_APP_HOST=%s\n' "${TEST_APP_HOST}"
+            printf 'TEST_OIDC_HOST=%s\n' "${TEST_OIDC_HOST}"
+            printf 'ACME_EMAIL=%s\n' "${ACME_EMAIL}"
+            printf "TEST_GATE_PASSWORD_HASH='%s'\n" "${TEST_GATE_PASSWORD_HASH}"
+            printf 'POSTGRES_DB=crm_test\n'
+            printf 'POSTGRES_USER=crm_test\n'
+            printf 'POSTGRES_PASSWORD=%s\n' "${POSTGRES_PASSWORD}"
+            printf 'AUTH_SESSION_SECRET=%s\n' "${AUTH_SESSION_SECRET}"
+            printf 'FAKE_OIDC_CLIENT_ID=volunteer-crm\n'
+            printf 'FAKE_OIDC_CLIENT_SECRET=%s\n' "${FAKE_OIDC_CLIENT_SECRET}"
+          } > "${RUNNER_TEMP}/.env.test-deployment"
+
+      - name: Install secrets and deploy containers
+        env:
+          DEPLOY_HOST: ${{ steps.infrastructure.outputs.server_ipv4 }}
+        run: |
+          scp -i "${HOME}/.ssh/test_deployment" -o IdentitiesOnly=yes \
+            "${RUNNER_TEMP}/.env.test-deployment" \
+            "deploy@${DEPLOY_HOST}:${DEPLOYMENT_DIRECTORY}/.env.test-deployment"
+          ssh -i "${HOME}/.ssh/test_deployment" -o IdentitiesOnly=yes \
+            "deploy@${DEPLOY_HOST}" \
+            "chmod 600 '${DEPLOYMENT_DIRECTORY}/.env.test-deployment' && '${DEPLOYMENT_DIRECTORY}/deployment/deploy-test.sh'"
+
+      - name: Confirm HTTPS gateway response when DNS is ready
+        continue-on-error: true
+        run: |
+          status="$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}' \
+            --connect-timeout 10 --max-time 20 "https://${TEST_APP_HOST}")"
+          if [[ "${status}" != "401" ]]; then
+            echo "Expected the password gate to return HTTP 401; received ${status}. DNS may still need updating." >&2
+            exit 1
+          fi
+

@@ -29,10 +29,6 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      APPLICATION_DOMAIN=${application_domain}
-      OIDC_DOMAIN=${oidc_domain}
-      CODE_REPOSITORY_URL=${code_repository_url}
-      CODE_REPOSITORY_REF=${code_repository_ref}
       DEPLOYMENT_DIRECTORY=${deployment_directory}
 
 runcmd:

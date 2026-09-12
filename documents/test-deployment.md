@@ -80,11 +80,10 @@ Use Bluehost's default TTL. Optionally create matching AAAA records using the
 new server before starting the Compose gateway, otherwise Caddy cannot obtain its
 public TLS certificates.
 
-Infrastructure settings such as the server size, location, domains, repository,
-and code ref are Terraform variables. The Hetzner token, SSH public key, and SSH
-source CIDRs are injected at runtime. Private SSH keys and application secrets are
-never passed through Terraform because values rendered into cloud-init are stored
-in Terraform state.
+Infrastructure settings such as the server size, location, and domains are
+Terraform variables. The Hetzner token and SSH public key are injected at runtime.
+Private SSH keys and application secrets are never passed through Terraform because
+values rendered into cloud-init are stored in Terraform state.
 
 See [`infrastructure/terraform/README.md`](../infrastructure/terraform/README.md)
 for setup, plan, apply, and destroy commands.
@@ -98,7 +97,7 @@ manager or another cryptographically secure generator.
 Generate the gate password hash locally or on the server:
 
 ```shell
-docker run --rm caddy:2.10.2-alpine caddy hash-password
+docker run --rm -it caddy:2.10.2-alpine caddy hash-password
 ```
 
 Enter the chosen password when prompted. Put the returned hash in
@@ -108,6 +107,46 @@ hostname only; the clear text password is not stored in the deployment environme
 
 ## Deploy and update
 
+### Automatic deployment from GitHub
+
+`.github/workflows/deploy-test.yml` runs for every push to `Infra-Test` and can
+also be started manually. It applies non-destructive Terraform changes, waits for
+cloud-init, checks out the exact pushed commit on the server, installs the
+application environment file, builds the Compose stack, and verifies its health.
+
+Create a GitHub environment named `test`, restrict its deployment branch to
+`Infra-Test`, and add these environment secrets:
+
+- `HCLOUD_TOKEN`: read/write token for the Hetzner project;
+- `TF_API_TOKEN`: HCP Terraform user or team token;
+- `TEST_SSH_PRIVATE_KEY`: private key matching `SSH_PUBLIC_KEY`;
+- `TEST_GATE_PASSWORD_HASH`: Caddy bcrypt hash, not the clear-text password;
+- `POSTGRES_PASSWORD`;
+- `AUTH_SESSION_SECRET`; and
+- `FAKE_OIDC_CLIENT_SECRET`.
+
+Add these environment variables:
+
+- `SSH_PUBLIC_KEY`: the complete public SSH key; and
+- `ACME_EMAIL`: certificate administration email address.
+
+The `alroseweir/volunteer-crm-test` HCP Terraform workspace must use **Local
+execution mode**. GitHub runs Terraform; HCP stores and locks its state. The
+workflow rejects any plan containing a deletion or replacement, so destructive
+infrastructure changes remain manual. SSH is globally reachable for GitHub-hosted
+runners but accepts only the configured key; root login and passwords are disabled.
+
+When a new VPS receives different addresses, the workflow summary prints the A and
+AAAA values to enter manually in Bluehost. A failed HTTPS check during DNS
+propagation does not roll back an otherwise healthy deployment; Caddy continues
+retrying certificate issuance.
+
+The workflow reconstructs `.env.test-deployment` from GitHub secrets on every
+deployment. It does not print that file or place application secrets in Terraform
+state.
+
+### Manual deployment
+
 From the repository root:
 
 ```shell
@@ -115,9 +154,9 @@ docker compose --env-file .env.test-deployment -f compose.test.yaml up --build -
 docker compose --env-file .env.test-deployment -f compose.test.yaml ps
 ```
 
-Terraform prepares the host but deliberately does not perform these application
-deployment commands. This keeps infrastructure changes separate from routine code
-releases and prevents application secrets from entering Terraform state.
+Terraform itself only prepares the host. The GitHub workflow, or an operator using
+the commands above, performs the application deployment separately so application
+secrets do not enter Terraform state.
 
 The first start performs these operations in order:
 
