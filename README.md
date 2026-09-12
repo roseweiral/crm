@@ -8,6 +8,10 @@ The [authorization architecture](documents/authorization-architecture.md) record
 the permission model and future OpenFGA boundary.
 The [automated PR review guide](documents/automated-pr-review.md) explains the
 Anthropic review workflow and required repository secret.
+The [internet-facing test deployment guide](documents/test-deployment.md) records
+the test infrastructure decisions and deployment procedure.
+The [Hetzner Terraform module](infrastructure/terraform/README.md) provisions the
+test server, public addresses, firewall, SSH access, and Docker host bootstrap.
 
 ## Local environment
 
@@ -89,8 +93,8 @@ Committed example files document the expected settings:
 - `.env.test.example`: future test-environment template
 - `.env.production.example`: future production template
 
-Test and production are configuration scaffolds only; no remote deployment is
-configured. When those environments are introduced, copy the relevant example to
+The internet-facing test infrastructure is configured but has not been provisioned.
+Production remains configuration scaffolding only. Copy the relevant example to
 an ignored environment file and select it explicitly:
 
 ```shell

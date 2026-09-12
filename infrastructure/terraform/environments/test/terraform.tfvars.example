@@ -1,0 +1,9 @@
+server_type     = "cx23"
+server_location = "nbg1"
+server_image    = "ubuntu-24.04"
+
+application_domain = "crm-test.roseweir.com"
+oidc_domain        = "login.crm-test.roseweir.com"
+
+enable_backups = false
+protect_server = false

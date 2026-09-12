@@ -226,7 +226,10 @@ Committed templates document the settings expected by each environment:
 - `.env.test.example`
 - `.env.production.example`
 
-Real environment files and credentials are ignored by Git. Test and production are
-currently configuration scaffolds only; no remote deployment has been configured.
+Real environment files and credentials are ignored by Git. Terraform configuration
+for an internet-facing test host is available under
+`infrastructure/terraform/environments/test`, but no remote resources are currently
+provisioned. Production remains configuration scaffolding pending architectural and
+operational decisions.
 The environment name is included in the Compose project name so containers,
 networks, and volumes do not overlap across environments.

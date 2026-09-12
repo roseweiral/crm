@@ -1,0 +1,40 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+ssh_pwauth: false
+disable_root: true
+
+users:
+  - default
+  - name: ${deployment_user}
+    gecos: Volunteer CRM deployment account
+    groups:
+      - sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${jsonencode(ssh_public_key)}
+
+packages:
+  - ca-certificates
+  - curl
+  - docker-compose-v2
+  - docker.io
+  - git
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/volunteer-crm-deployment
+    owner: root:root
+    permissions: "0644"
+    content: |
+      DEPLOYMENT_DIRECTORY=${deployment_directory}
+
+runcmd:
+  - [systemctl, enable, --now, docker]
+  - [usermod, -aG, docker, ${deployment_user}]
+  - [install, -d, -o, ${deployment_user}, -g, ${deployment_user}, -m, "0755", ${deployment_directory}]
+  - [systemctl, enable, --now, unattended-upgrades]
+
+final_message: "Volunteer CRM host bootstrap completed"

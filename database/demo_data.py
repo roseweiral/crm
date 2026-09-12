@@ -76,10 +76,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="clear existing database records before inserting demo data",
     )
+    parser.add_argument(
+        "--initialize",
+        action="store_true",
+        help="append demo data once, leaving an initialized database unchanged",
+    )
     return parser
 
 
 def validate_counts(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.replace and args.initialize:
+        parser.error("--replace and --initialize cannot be used together")
     minimum_contacts = max(3, args.families * 2)
     if args.contacts < minimum_contacts:
         parser.error(
@@ -123,7 +130,12 @@ def main(arguments: Sequence[str] | None = None) -> int:
         if not database_url:
             parser.error("DATABASE_URL must be set for database output")
 
-        total_records = write_database(context, database_url, args.replace)
+        total_records = write_database(
+            context,
+            database_url,
+            args.replace,
+            initialize_once=args.initialize,
+        )
 
     print(f"TOTAL: {total_records} RECORDS GENERATED")
     return total_records

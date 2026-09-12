@@ -2,6 +2,8 @@ name: Claude PR Review
 
 on:
   pull_request:
+    branches:
+      - dev
     types:
       - opened
       - synchronize

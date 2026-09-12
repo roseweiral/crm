@@ -168,10 +168,13 @@ def get_current_user(
 
 
 def session_cookie_options() -> dict[str, Any]:
+    secure = os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {
+        "1", "true", "yes", "on"
+    } or os.environ.get("APP_ENV") == "production"
     return {
         "key": SESSION_COOKIE,
         "httponly": True,
-        "secure": os.environ.get("APP_ENV") == "production",
+        "secure": secure,
         "samesite": "lax",
         "max_age": int(SESSION_LIFETIME.total_seconds()),
         "path": "/",

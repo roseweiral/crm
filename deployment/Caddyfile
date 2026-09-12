@@ -1,0 +1,33 @@
+{
+	email {$ACME_EMAIL}
+}
+
+(test_gate) {
+	basic_auth {
+		tester {$TEST_GATE_PASSWORD_HASH}
+	}
+}
+
+{$TEST_APP_HOST} {
+	import test_gate
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+
+	reverse_proxy /api/* app:8000
+	reverse_proxy /auth/* app:8000
+	reverse_proxy frontend:8080
+}
+
+{$TEST_OIDC_HOST} {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	reverse_proxy fake-oidc:9000
+}
