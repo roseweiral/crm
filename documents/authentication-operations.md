@@ -2,6 +2,8 @@
 
 ## Implemented security boundary
 
+This section describes what is live today. Two agreed but not-yet-implemented changes — a sliding session (1-hour idle timeout, 24-hour absolute cap) and a documented admin-recovery procedure — are recorded in [`open-questions.md`](open-questions.md) pending their own increments.
+
 The CRM uses OpenID Connect authorization code flow with PKCE for Google and
 Microsoft. Discovery metadata supplies the provider endpoints and signing keys.
 The callback validates provider signatures, audience, issuer, expiry, state, nonce,
@@ -135,3 +137,23 @@ client secrets or the OIDC transaction secret, an administrator's external accou
 the host or database, and incorrect contact/role/family data. Secret rotation,
 database backups, HTTPS termination, security monitoring, administrator recovery, and
 retention rules must be defined before production launch.
+
+### Verified email and account recovery
+
+New identity links require an explicit `email_verified=true` claim and an `email`
+matching the invitation. `preferred_username` is not an email-verification signal.
+Microsoft Entra's ordinary email/username claims do not establish mailbox ownership:
+see [Microsoft's ID token claim reference](https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference).
+Until an independent mailbox-verification flow is implemented, providers that do
+not supply verified email cannot accept invitations. The test OIDC provider emits
+verified email and supports testing both configured provider names.
+
+Already-linked identities sign in using their validated provider, issuer, and
+subject. Missing or unverified email claims do not replace the stored verified
+address or block that existing identity's sign-in.
+
+Invitation acceptance locks and checks the account before consuming the invitation.
+Only `invited` accounts can activate. Invitation creation returns 409 for active,
+suspended, closed, or already-linked accounts; reopening those accounts requires a
+separately designed recovery flow. Failed OIDC exchange and identity-verification
+audit events commit independently from the rejected request transaction.

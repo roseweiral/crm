@@ -57,68 +57,28 @@ def test_fake_oidc_signs_in_an_existing_identity() -> None:
                 )
 
 
-def test_fake_oidc_rejects_an_invitation_at_or_after_expiry() -> None:
-    invitation_token = secrets.token_urlsafe(48)
-    with psycopg.connect(DATABASE_URL, row_factory=dict_row) as connection:
-        identity = connection.execute(
-            """
-            SELECT ui.*, ua.id AS account_id
-            FROM user_identities ui
-            JOIN user_accounts ua ON ua.id = ui.user_account_id
-            WHERE NOT EXISTS (
-              SELECT 1 FROM user_access_role_assignments assignment
-              WHERE assignment.user_account_id = ua.id
-            )
-            ORDER BY ui.id
-            LIMIT 1
-            """
-        ).fetchone()
-        connection.execute("DELETE FROM user_identities WHERE id = %s", (identity["id"],))
-        connection.execute(
-            "UPDATE user_accounts SET status = 'invited' WHERE id = %s",
-            (identity["account_id"],),
-        )
-        invitation_id = connection.execute(
-            """
-            INSERT INTO invitations (
-              user_account_id, email, token_hash, created_at, expires_at
-            ) VALUES (%s, %s, %s, now() - interval '2 days', now() - interval '1 day')
-            RETURNING id
-            """,
-            (
-                identity["account_id"],
-                identity["email"],
-                hashlib.sha256(invitation_token.encode()).hexdigest(),
-            ),
-        ).fetchone()["id"]
+def test_fake_oidc_rejects_an_invitation_at_or_after_expiry(records, person) -> None:
+    from datetime import datetime, timezone
 
-    try:
-        with httpx.Client(follow_redirects=False) as client:
-            start = client.get(
-                f"{API_URL}/auth/login/google",
-                params={"login_hint": identity["subject"], "invitation": invitation_token},
-            )
-            authorised = client.get(start.headers["location"])
-            callback = client.get(authorised.headers["location"])
-        assert callback.status_code == 403
-        assert callback.json() == {"detail": "Invitation is invalid"}
-    finally:
-        with psycopg.connect(DATABASE_URL) as connection:
-            connection.execute("DELETE FROM invitations WHERE id = %s", (invitation_id,))
-            connection.execute(
-                "UPDATE user_accounts SET status = 'active' WHERE id = %s",
-                (identity["account_id"],),
-            )
-            connection.execute(
-                """
-                INSERT INTO user_identities (
-                  id, user_account_id, provider, issuer, subject, email,
-                  email_verified, last_signed_in_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    identity["id"], identity["user_account_id"], identity["provider"],
-                    identity["issuer"], identity["subject"], identity["email"],
-                    identity["email_verified"], identity["last_signed_in_at"],
-                ),
-            )
+    contact, account = person("invited")
+    invitation_token = secrets.token_urlsafe(48)
+    now = datetime.now(timezone.utc)
+    records(
+        "invitations",
+        user_account_id=account["id"],
+        email=contact["email"],
+        token_hash=hashlib.sha256(invitation_token.encode()).hexdigest(),
+        created_at=now - timedelta(days=2),
+        expires_at=now - timedelta(days=1),
+    )
+    with httpx.Client(follow_redirects=False) as client:
+        start = client.get(
+            f"{API_URL}/auth/login/google",
+            params={"login_hint": str(contact["id"]), "invitation": invitation_token},
+        )
+        assert start.status_code in {302, 307}
+        authorised = client.get(start.headers["location"])
+        assert authorised.status_code == 303
+        callback = client.get(authorised.headers["location"])
+    assert callback.status_code == 403
+    assert callback.json() == {"detail": "Invitation is invalid"}

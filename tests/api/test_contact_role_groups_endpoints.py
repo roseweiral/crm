@@ -42,11 +42,33 @@ def expected_assignments(
     )
 
 
+@pytest.fixture
+def assignment_batch(records, person):
+    from datetime import date, timedelta
+
+    contact, _ = person()
+    role = records("role_types", name="Pagination role")
+    group_type = records("group_types", name="Pagination group type")
+    group = records("groups", group_type_id=group_type["id"], name="Pagination group")
+    selected = {
+        "contact_id": contact["id"],
+        "group_id": group["id"],
+        "role_type_id": role["id"],
+    }
+    for index in range(26):
+        records(
+            "contact_roles_groups",
+            **selected,
+            start_date=date(2000, 1, 1) + timedelta(days=index),
+        )
+    return selected
+
+
 def test_get_contact_role_groups_returns_first_page() -> None:
     expected = expected_assignments()
-    total = database_rows(
-        "SELECT count(*) AS total FROM contact_roles_groups"
-    )[0]["total"]
+    total = database_rows("SELECT count(*) AS total FROM contact_roles_groups")[0][
+        "total"
+    ]
 
     response = httpx.get(f"{API_URL}/api/v1/contact-role-groups", timeout=5)
 
@@ -81,11 +103,11 @@ def test_get_contact_role_group_returns_matching_assignment() -> None:
 
 
 @pytest.mark.parametrize("filter_name", ("contact_id", "group_id", "role_type_id"))
-def test_get_contact_role_groups_filters_by_related_uuid(filter_name: str) -> None:
+def test_get_contact_role_groups_filters_by_related_uuid(
+    filter_name: str, assignment_batch
+) -> None:
     column_name = filter_name
-    selected = database_rows(
-        f"SELECT {column_name} FROM contact_roles_groups ORDER BY id LIMIT 1"
-    )[0][column_name]
+    selected = assignment_batch[column_name]
     expected = expected_assignments(f"WHERE crg.{column_name} = %s", (selected,))
 
     response = httpx.get(
@@ -99,19 +121,12 @@ def test_get_contact_role_groups_filters_by_related_uuid(filter_name: str) -> No
         "items": serialise(expected),
         "page": 1,
         "page_size": 25,
-        "total": len(expected),
+        "total": 26,  # Full fixture count, independent of the 25-item page.
     }
 
 
-def test_get_contact_role_groups_combines_uuid_filters() -> None:
-    selected = database_rows(
-        """
-        SELECT contact_id, group_id, role_type_id
-        FROM contact_roles_groups
-        ORDER BY id
-        LIMIT 1
-        """
-    )[0]
+def test_get_contact_role_groups_combines_uuid_filters(assignment_batch) -> None:
+    selected = assignment_batch
     expected = expected_assignments(
         """
         WHERE crg.contact_id = %s
@@ -132,7 +147,7 @@ def test_get_contact_role_groups_combines_uuid_filters() -> None:
         "items": serialise(expected),
         "page": 1,
         "page_size": 25,
-        "total": len(expected),
+        "total": 26,  # Full fixture count, independent of the 25-item page.
     }
 
 
@@ -148,8 +163,6 @@ def test_get_contact_role_group_returns_404_for_unknown_uuid() -> None:
 
 
 def test_get_contact_role_group_rejects_malformed_uuid() -> None:
-    response = httpx.get(
-        f"{API_URL}/api/v1/contact-role-groups/not-a-uuid", timeout=5
-    )
+    response = httpx.get(f"{API_URL}/api/v1/contact-role-groups/not-a-uuid", timeout=5)
 
     assert response.status_code == 422

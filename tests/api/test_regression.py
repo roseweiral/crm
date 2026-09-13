@@ -22,14 +22,28 @@ COLLECTION_PATHS = (
 
 
 @pytest.mark.parametrize("path", COLLECTION_PATHS)
-def test_collection_pagination_returns_every_record_once(path: str) -> None:
-    full_response = httpx.get(
-        f"{API_URL}{path}", params={"page_size": 100}, timeout=5
-    )
+def test_collection_pagination_returns_every_record_once(path: str, records) -> None:
+    if path == "/api/v1/contacts":
+        for index in range(105):
+            records("contacts", first_name="Pagination", last_name=f"{index:03d}")
+    full_response = httpx.get(f"{API_URL}{path}", params={"page_size": 100}, timeout=5)
 
     assert full_response.status_code == 200
     full_page = full_response.json()
-    expected_items = full_page["items"]
+    table, order = {
+        "/api/v1/contacts": ("contacts", "last_name, first_name, id"),
+        "/api/v1/family-units": ("family_units", "id"),
+        "/api/v1/role-types": ("role_types", "name, id"),
+        "/api/v1/group-types": ("group_types", "name, id"),
+        "/api/v1/groups": ("groups", "name, id"),
+        "/api/v1/contact-role-groups": ("contact_roles_groups", "start_date, id"),
+    }[path]
+    expected_ids = [
+        str(row["id"])
+        for row in database_rows(f"SELECT id FROM {table} ORDER BY {order}")
+    ]
+    assert full_page["total"] == len(expected_ids)
+    assert [item["id"] for item in full_page["items"]] == expected_ids[:100]
     page_size = 2
     page_count = ceil(full_page["total"] / page_size)
     paged_items = []
@@ -48,7 +62,7 @@ def test_collection_pagination_returns_every_record_once(path: str) -> None:
         assert payload["total"] == full_page["total"]
         paged_items.extend(payload["items"])
 
-    assert paged_items == expected_items
+    assert [item["id"] for item in paged_items] == expected_ids
     assert len({item["id"] for item in paged_items}) == full_page["total"]
 
 
@@ -111,9 +125,7 @@ def test_default_demo_dataset_keeps_expected_core_records() -> None:
         f"{API_URL}/api/v1/group-types", params={"page_size": 100}, timeout=5
     )
     role_names = [item["name"] for item in role_response.json()["items"]]
-    group_type_names = [
-        item["name"] for item in group_type_response.json()["items"]
-    ]
+    group_type_names = [item["name"] for item in group_type_response.json()["items"]]
 
     assert role_names == [
         "Area Manager",
@@ -151,9 +163,9 @@ def test_assignment_filter_with_no_matches_returns_an_empty_page(
 
 
 def test_assignment_filter_preserves_pagination_and_human_readable_fields() -> None:
-    role_type = database_rows(
-        "SELECT id FROM role_types WHERE name = 'Group Helper'"
-    )[0]
+    role_type = database_rows("SELECT id FROM role_types WHERE name = 'Group Helper'")[
+        0
+    ]
     expected = database_rows(
         """
         SELECT

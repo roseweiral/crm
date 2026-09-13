@@ -2,26 +2,24 @@
 
 import os
 
+from authentication import get_current_user
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-
+from routers.authentication import router as authentication_router
 from routers.contact_role_groups import router as contact_role_groups_router
 from routers.contacts import router as contacts_router
 from routers.family_units import router as family_units_router
 from routers.reference_data import router as reference_data_router
-from routers.authentication import router as authentication_router
-from authentication import get_current_user
-
+from starlette.middleware.sessions import SessionMiddleware
+from write_security import allowed_origins
 
 app = FastAPI(title="Volunteer CRM API")
 auth_session_secret = os.environ.get("AUTH_SESSION_SECRET")
-secure_cookies = os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {
-    "1", "true", "yes", "on"
-} or os.environ.get("APP_ENV") == "production"
-if secure_cookies and (
-    not auth_session_secret or len(auth_session_secret) < 32
-):
+secure_cookies = (
+    os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {"1", "true", "yes", "on"}
+    or os.environ.get("APP_ENV") == "production"
+)
+if secure_cookies and (not auth_session_secret or len(auth_session_secret) < 32):
     raise RuntimeError("AUTH_SESSION_SECRET must contain at least 32 characters")
 app.add_middleware(
     SessionMiddleware,
@@ -33,15 +31,10 @@ app.add_middleware(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.environ.get(
-            "CORS_ORIGINS", "http://localhost:5173"
-        ).split(",")
-        if origin.strip()
-    ],
-    allow_methods=["GET", "POST"],
+    allow_origins=allowed_origins(),
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["ETag", "Location"],
     allow_credentials=True,
 )
 protected = [Depends(get_current_user)]

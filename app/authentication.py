@@ -6,17 +6,17 @@ import hashlib
 import os
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
+import psycopg
 from authlib.integrations.starlette_client import OAuth
 from fastapi import Depends, HTTPException, Request, status
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-from database import get_connection
-
+from database import get_connection, get_database_url
 
 SESSION_COOKIE = "crm_session"
 SESSION_LIFETIME = timedelta(hours=12)
@@ -123,6 +123,12 @@ def audit_event(
     )
 
 
+def audit_failure(request: Request, event_type: str, **details: Any) -> None:
+    """Persist rejection evidence independently of the request's rollback."""
+    with psycopg.connect(get_database_url()) as connection:
+        audit_event(connection, request, event_type, "failure", **details)
+
+
 def get_current_user(
     request: Request,
     connection: Connection[Any] = Depends(get_connection),
@@ -160,17 +166,28 @@ def get_current_user(
             detail="Session is invalid or expired",
         )
 
-    connection.execute(
-        "UPDATE user_sessions SET last_seen_at = now() WHERE id = %s",
-        (row["session_id"],),
-    )
+    # Activity must release its session lock before resource handlers take contact
+    # locks. Otherwise simultaneous self-archive requests can deadlock when each
+    # request holds its own session lock and archiving tries to revoke both.
+    with psycopg.connect(get_database_url(), autocommit=True) as activity_connection:
+        active_session = activity_connection.execute(
+            """
+            UPDATE user_sessions SET last_seen_at = now()
+            WHERE id = %s AND revoked_at IS NULL AND expires_at > now()
+            RETURNING id
+            """,
+            (row["session_id"],),
+        ).fetchone()
+    if active_session is None:
+        raise HTTPException(status_code=401, detail="Session is invalid or expired")
     return CurrentUser(**row)
 
 
 def session_cookie_options() -> dict[str, Any]:
-    secure = os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {
-        "1", "true", "yes", "on"
-    } or os.environ.get("APP_ENV") == "production"
+    secure = (
+        os.environ.get("AUTH_COOKIE_SECURE", "").lower() in {"1", "true", "yes", "on"}
+        or os.environ.get("APP_ENV") == "production"
+    )
     return {
         "key": SESSION_COOKIE,
         "httponly": True,

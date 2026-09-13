@@ -47,30 +47,46 @@ def main() -> int:
         )
     os.environ["AUTH_TEST_SESSION_TOKEN"] = raw_session
 
-    extra_arguments = shlex.split(os.environ.get("PYTEST_ARGS", ""))
-
-    for category in configured_categories():
-        print(f"\n=== RUNNING {category.upper()} TESTS ===", flush=True)
-        command = [
-            "pytest",
-            "-c",
-            "tests/api/pytest.ini",
-            "-m",
-            category,
-            "tests/api",
-            *extra_arguments,
-        ]
-        result = subprocess.run(command, check=False)
-        if result.returncode != 0:
-            print(
-                f"\n{category.upper()} TESTS FAILED; LATER CATEGORIES SKIPPED",
-                flush=True,
+    try:
+        return run_categories(
+            configured_categories(), shlex.split(os.environ.get("PYTEST_ARGS", ""))
+        )
+    finally:
+        with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
+            connection.execute(
+                "DELETE FROM user_sessions WHERE token_hash = %s",
+                (hashlib.sha256(raw_session.encode()).hexdigest(),),
             )
+
+
+def run_categories(categories: list[str], extra_arguments: list[str]) -> int:
+    ran_tests = False
+    for category in categories:
+        print(f"\n=== RUNNING {category.upper()} TESTS ===", flush=True)
+        result = subprocess.run(
+            [
+                "pytest",
+                "-c",
+                "tests/api/pytest.ini",
+                "-m",
+                category,
+                "tests/api",
+                *extra_arguments,
+            ],
+            check=False,
+        )
+        if result.returncode == 5:
+            print(f"No tests selected in {category}", flush=True)
+            continue
+        if result.returncode != 0:
             return result.returncode
-
-        print(f"{category.upper()} TESTS PASSED", flush=True)
-
-    print("\nALL CONFIGURED TEST CATEGORIES PASSED", flush=True)
+        ran_tests = True
+    if not ran_tests:
+        print(
+            "No tests matched the selected categories and pytest arguments", flush=True
+        )
+        return 5
+    print("All selected tests passed", flush=True)
     return 0
 
 

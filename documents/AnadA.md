@@ -248,6 +248,8 @@ invitation and provider-selection journey using the fake provider.
 
 ## Open questions
 
+Status and decisions for these are tracked in [`open-questions.md`](open-questions.md); this list is kept here as the original source wording.
+
 1. Which organisation owns the CRM, and do most intended users have managed Google
    Workspace or Microsoft 365 accounts? This affects provider configuration and
    whether tenant or domain restrictions are appropriate.

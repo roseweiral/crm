@@ -53,3 +53,76 @@ Open `http://localhost:9323`. Stop the viewer with:
 ```shell
 docker compose --profile test stop e2e-report
 ```
+
+## Pytest TDD workflow
+
+Use a separate Compose project and the example test configuration so test runs do
+not replace your development database. The `api-tester` service **replaces its
+configured database with demo data before each run**. Do not point it at a database
+whose contents you need to retain.
+
+Run the complete API suite:
+
+```shell
+docker compose --env-file .env.test.example -p crm-pytest --profile test run --rm --build api-tester
+```
+
+Run one test while developing:
+
+```shell
+PYTEST_ARGS='-q -k test_invitation_cannot_reactivate_disabled_account' docker compose --env-file .env.test.example -p crm-pytest --profile test run --rm --build api-tester
+```
+
+Run one category:
+
+```shell
+API_TEST_CATEGORIES=contract docker compose --env-file .env.test.example -p crm-pytest --profile test run --rm --build api-tester
+```
+
+Compose forwards `PYTEST_ARGS` to the runner. Categories with no matching tests are
+skipped; if nothing matches across all categories, the runner exits with code 5.
+Test failures and collection errors still stop subsequent categories. Use `-k` for
+focused selection; let `API_TEST_CATEGORIES` control markers rather than overriding
+`-m` in `PYTEST_ARGS`.
+
+1. Add a behavior test and run it alone. Confirm it fails for the intended reason,
+   rather than an unavailable service or broken fixture.
+2. Make the smallest implementation change that makes it pass.
+3. Refactor, rerun the focused test, then run the complete suite.
+
+The tester installs both API and pytest dependencies. It runs HTTP tests against
+the Compose API and transaction tests through FastAPI's test client against the
+same PostgreSQL database. The latter replace only the OIDC exchange; real fake-OIDC
+HTTP tests still exercise the authorization-code flow. The fake provider reads test
+contacts from PostgreSQL so disposable identities can participate in those tests.
+
+Use `records`, `person`, and `session_token` fixtures for test-owned data. Rows are
+committed so other request connections can see them, and teardown removes them
+even when assertions fail. Create explicit relationship graphs instead of modifying
+demo users. Demo counts are asserted separately from isolated behavior scenarios.
+Run this shared-database suite serially; parallel workers require separate databases.
+
+To check repeatability without resetting the database, after the initial run:
+
+```shell
+docker compose --env-file .env.test.example -p crm-pytest --profile test run --rm api-tester python tests/api/run_tests.py
+```
+
+Remove the disposable environment when finished:
+
+```shell
+docker compose --env-file .env.test.example -p crm-pytest --profile test down -v
+```
+
+## API contracts
+
+`documents/api-contract.md` is the behavioral specification. For each increment,
+update it first, add tests and confirm the intended failures, implement the behavior,
+then review code and documentation together. FastAPI publishes field schemas;
+Markdown captures permissions, transaction rules, concurrency, and lifecycle effects.
+
+For the contact-write increment, focus on its contract cases with
+`PYTEST_ARGS='-q -k contact_writes'` using the Compose command above. These tests
+include real HTTP concurrency, PostgreSQL rollback and migration checks, and
+in-process API tests for failure injection. See `documents/reviews/contact-writes.md`
+for the observed red/green results and follow-up review findings.

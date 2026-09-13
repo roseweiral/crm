@@ -58,6 +58,7 @@ services:
     build:
       context: ./fake_oidc
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       FAKE_OIDC_ISSUER: ${FAKE_OIDC_ISSUER}
       FAKE_OIDC_BROWSER_BASE_URL: ${FAKE_OIDC_BROWSER_BASE_URL}
       FAKE_OIDC_INTERNAL_BASE_URL: http://fake-oidc:9000
@@ -102,9 +103,11 @@ services:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       API_URL: http://app:8000
-      TEST_CATEGORIES: ${API_TEST_CATEGORIES}
+      TEST_CATEGORIES: ${API_TEST_CATEGORIES:-smoke,contract,regression}
+      PYTEST_ARGS: ${PYTEST_ARGS:-}
     volumes:
       - ./tests/api:/workspace/tests/api
+      - ./app:/workspace/app:ro
       - ./database:/database:ro
     depends_on:
       database:
