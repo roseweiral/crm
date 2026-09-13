@@ -18,7 +18,6 @@ from psycopg.types.json import Jsonb
 
 from database import get_connection, get_database_url
 
-
 SESSION_COOKIE = "crm_session"
 SESSION_LIFETIME = timedelta(hours=12)
 OIDC_PROVIDERS = ("google", "microsoft")
@@ -167,10 +166,20 @@ def get_current_user(
             detail="Session is invalid or expired",
         )
 
-    connection.execute(
-        "UPDATE user_sessions SET last_seen_at = now() WHERE id = %s",
-        (row["session_id"],),
-    )
+    # Activity must release its session lock before resource handlers take contact
+    # locks. Otherwise simultaneous self-archive requests can deadlock when each
+    # request holds its own session lock and archiving tries to revoke both.
+    with psycopg.connect(get_database_url(), autocommit=True) as activity_connection:
+        active_session = activity_connection.execute(
+            """
+            UPDATE user_sessions SET last_seen_at = now()
+            WHERE id = %s AND revoked_at IS NULL AND expires_at > now()
+            RETURNING id
+            """,
+            (row["session_id"],),
+        ).fetchone()
+    if active_session is None:
+        raise HTTPException(status_code=401, detail="Session is invalid or expired")
     return CurrentUser(**row)
 
 

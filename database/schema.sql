@@ -43,6 +43,8 @@ CREATE TABLE contacts (
   modified_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX uq_contacts_email_normalized ON contacts (lower(btrim(email)));
+
 CREATE TABLE user_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   contact_id uuid NOT NULL UNIQUE,

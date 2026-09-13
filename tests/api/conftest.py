@@ -45,6 +45,7 @@ def records():
         created.append((table, row["id"]))
         return row
 
+    insert.track = lambda table, record_id: created.append((table, record_id))
     yield insert
 
     with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
@@ -65,8 +66,8 @@ def records():
                     )
             if table == "contacts":
                 connection.execute(
-                    "DELETE FROM audit_events WHERE details->>'invited_contact_id' = %s",
-                    (str(record_id),),
+                    "DELETE FROM audit_events WHERE details->>'invited_contact_id' = %s OR details->>'contact_id' = %s",
+                    (str(record_id), str(record_id)),
                 )
             connection.execute(
                 sql.SQL("DELETE FROM {} WHERE id = %s").format(sql.Identifier(table)),
@@ -134,6 +135,7 @@ def callback_client(monkeypatch):
     monkeypatch.setattr(routes.oauth, "create_client", lambda name: provider)
     monkeypatch.setattr(routes, "enabled_providers", lambda: ["google", "microsoft"])
     from uuid import uuid4
+
     import psycopg
 
     user_agent = f"pytest-{uuid4()}"

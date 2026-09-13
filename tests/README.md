@@ -113,3 +113,16 @@ Remove the disposable environment when finished:
 ```shell
 docker compose --env-file .env.test.example -p crm-pytest --profile test down -v
 ```
+
+## API contracts
+
+`documents/api-contract.md` is the behavioral specification. For each increment,
+update it first, add tests and confirm the intended failures, implement the behavior,
+then review code and documentation together. FastAPI publishes field schemas;
+Markdown captures permissions, transaction rules, concurrency, and lifecycle effects.
+
+For the contact-write increment, focus on its contract cases with
+`PYTEST_ARGS='-q -k contact_writes'` using the Compose command above. These tests
+include real HTTP concurrency, PostgreSQL rollback and migration checks, and
+in-process API tests for failure injection. See `documents/reviews/contact-writes.md`
+for the observed red/green results and follow-up review findings.

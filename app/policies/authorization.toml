@@ -129,3 +129,21 @@ resource = "invitation"
 source = "access_role"
 relationship = "Global System Administrator"
 scope = "all"
+
+[actions."contact:create"]
+description = "Create a CRM contact without granting login access."
+resource = "contact"
+
+[[actions."contact:create".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[actions."contact:update"]
+description = "Edit or archive an existing contact."
+resource = "contact"
+
+[[actions."contact:update".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
