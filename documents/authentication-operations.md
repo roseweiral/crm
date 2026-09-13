@@ -2,6 +2,8 @@
 
 ## Implemented security boundary
 
+This section describes what is live today. Two agreed but not-yet-implemented changes — a sliding session (1-hour idle timeout, 24-hour absolute cap) and a documented admin-recovery procedure — are recorded in [`open-questions.md`](open-questions.md) pending their own increments.
+
 The CRM uses OpenID Connect authorization code flow with PKCE for Google and
 Microsoft. Discovery metadata supplies the provider endpoints and signing keys.
 The callback validates provider signatures, audience, issuer, expiry, state, nonce,

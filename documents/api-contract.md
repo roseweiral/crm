@@ -10,7 +10,8 @@ before changing externally visible behavior.
 The first increment is contact POST and PATCH, plus ETags on contact detail GET.
 Existing collection and authentication behavior remains compatible. PUT, DELETE,
 and writes to other resources are future increments, not implemented promises.
-Each increment follows documentation → failing tests → implementation → review.
+Each increment follows documentation → failing tests → implementation → review;
+see [`way-of-working.md`](way-of-working.md) for the detailed cycle.
 
 ## Shared conventions
 

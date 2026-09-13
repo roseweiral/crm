@@ -96,6 +96,8 @@ resource semantics and allow/deny tests before an endpoint relies on it.
 
 ## Initial relationship rules
 
+Group Leader/Area Manager write scope, the address book, and the Main-Contact-gated family access model are now agreed in [`family-and-directory-design.md`](family-and-directory-design.md); the rules below predate that session and are superseded where they conflict.
+
 - Global System Administrator may perform granted administrative actions across all
   CRM resources.
 - Area Manager and Group Leader permissions are scoped to their assigned group and,
@@ -176,6 +178,8 @@ The migration should not be triggered merely to store group membership: that rem
 a normal CRM data concern in PostgreSQL.
 
 ## Required policy work
+
+Agreed decisions so far — including the first Group Leader/Area Manager write-permission split — are recorded in [`open-questions.md`](open-questions.md); still-open items there remain blocking for the rest of this section.
 
 Before adding write endpoints, create a policy matrix covering every action and
 resource type. It must specify:

@@ -1,17 +1,59 @@
 # Volunteer CRM
 
 A CRM for managing volunteers, young members, families, organisational groups,
-roles, and awards.
+roles, and awards. See the [project overview](documents/project-overview.md) for
+the full vision, architecture, and technology choices.
 
-The [project overview](documents/project-overview.md) describes the architecture.
-The [authorization architecture](documents/authorization-architecture.md) records
-the permission model and future OpenFGA boundary.
-The [automated PR review guide](documents/automated-pr-review.md) explains the
-Anthropic review workflow and required repository secret.
-The [internet-facing test deployment guide](documents/test-deployment.md) records
-the test infrastructure decisions and deployment procedure.
-The [Hetzner Terraform module](infrastructure/terraform/README.md) provisions the
-test server, public addresses, firewall, SSH access, and Docker host bootstrap.
+## Documentation index
+
+Docs are grouped by topic so an agent or new contributor can jump straight to
+the relevant one instead of reading the whole tree.
+
+### Architecture and process
+
+| Document | Covers |
+| --- | --- |
+| [Project overview](documents/project-overview.md) | Vision, repository structure, technology choices, containers, environments |
+| [Way of working](documents/way-of-working.md) | The four-stage contract → tests → implementation → review cycle used for every endpoint increment |
+| [Open questions](documents/open-questions.md) | Tracked list of design decisions, resolved and still-open, blocking future increments |
+| [Family and directory design](documents/family-and-directory-design.md) | Agreed decisions on Young Member roles, the organisation-wide address book, and family relationships/Main Contact |
+| [Automated PR review](documents/automated-pr-review.md) | The Claude Code Action that reviews pull requests, and the required repository secret |
+
+### Authentication and authorization
+
+| Document | Covers |
+| --- | --- |
+| [AuthN/AuthZ design (AnadA)](documents/AnadA.md) | Original design decisions, agreed principles, and the source open questions for sign-in and permissions |
+| [Authorization architecture](documents/authorization-architecture.md) | The PostgreSQL/policy boundary, `AuthorizationService`, and the planned OpenFGA migration path |
+| [Authentication operations](documents/authentication-operations.md) | Implemented OIDC flow, session/invitation lifetimes, bootstrap admin, fake-OIDC service |
+
+### API and testing
+
+| Document | Covers |
+| --- | --- |
+| [API contract](documents/api-contract.md) | The behavioral specification for each endpoint increment; source of truth for write behavior |
+| [Contact-writes review](documents/reviews/contact-writes.md) | TDD evidence and follow-up findings from the first write increment |
+| [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
+| [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
+| [App README](app/README.md) | FastAPI application entry points |
+| [Web README](web/README.md) | React/Vite frontend |
+
+### Data
+
+| Document | Covers |
+| --- | --- |
+| [Database schema (DBML)](documents/database/db.dbml) | Visual/conceptual database model, kept in sync with `database/schema.sql` |
+| [Demo data design](documents/demo-data.md) | Faker-based generator rules, record counts, hierarchy, role logic |
+| [Seed data](database/seed/README.md) | Deterministic CSVs used to initialise a blank database |
+| [Database migrations](database/migrations/README.md) | How to apply migrations to an existing database |
+| [Demo data generators](database/demo/README.md) | One generator module per table |
+
+### Deployment
+
+| Document | Covers |
+| --- | --- |
+| [Internet-facing test deployment](documents/test-deployment.md) | Public demo/acceptance-test environment, Caddy gate, deploy workflow |
+| [Hetzner Terraform module](infrastructure/terraform/README.md) | Provisions the test server, public addresses, firewall, SSH access, and Docker host bootstrap |
 
 ## Local environment
 
