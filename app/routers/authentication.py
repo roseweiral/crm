@@ -16,6 +16,7 @@ from uuid import UUID
 from authentication import (
     CurrentUser,
     audit_event,
+    audit_failure,
     create_session,
     enabled_providers,
     get_current_user,
@@ -91,11 +92,9 @@ async def auth_callback(
         claims = dict(token["userinfo"])
     except Exception as error:
         logger.exception("OIDC callback failed for provider %s", provider)
-        audit_event(
-            connection,
+        audit_failure(
             request,
             "authentication.callback",
-            "failure",
             provider=provider,
             details={"reason": type(error).__name__},
         )
@@ -103,21 +102,16 @@ async def auth_callback(
 
     issuer = str(claims.get("iss", ""))
     subject = str(claims.get("sub", ""))
-    email = str(claims.get("email") or claims.get("preferred_username") or "").strip().lower()
-    verified_email = claims.get("email_verified") is True or (
-        provider == "microsoft" and bool(email)
-    )
-    if not issuer or not subject or not email or not verified_email:
-        audit_event(
-            connection,
+    email = str(claims.get("email") or "").strip().lower()
+    verified_email = claims.get("email_verified") is True
+    if not issuer or not subject:
+        audit_failure(
             request,
             "authentication.identity",
-            "failure",
             provider=provider,
-            subject=subject or None,
-            details={"reason": "verified_email_required"},
+            details={"reason": "identity_required"},
         )
-        raise HTTPException(status_code=401, detail="A verified email is required")
+        raise HTTPException(status_code=401, detail="Authentication failed")
 
     identity = connection.execute(
         """
@@ -129,14 +123,35 @@ async def auth_callback(
     ).fetchone()
 
     if identity is None:
+        if not email or not verified_email:
+            audit_failure(
+                request,
+                "authentication.identity",
+                provider=provider,
+                subject=subject,
+                details={"reason": "verified_email_required"},
+            )
+            raise HTTPException(status_code=401, detail="A verified email is required")
         invitation_token = request.session.pop("invitation", None)
         if not invitation_token:
             raise HTTPException(status_code=403, detail="An invitation is required")
+        # Use the same account-then-invitation lock order as invitation creation.
+        invited_account = connection.execute(
+            """
+            SELECT ua.id, ua.status FROM user_accounts ua
+            JOIN invitations i ON i.user_account_id = ua.id
+            WHERE i.token_hash = %s
+            FOR UPDATE OF ua
+            """,
+            (hash_secret_token(invitation_token),),
+        ).fetchone()
+        if invited_account is None or invited_account["status"] != "invited":
+            raise HTTPException(status_code=403, detail="Invitation is invalid")
         invitation = connection.execute(
             """
-            SELECT id, user_account_id, email
-            FROM invitations
-            WHERE token_hash = %s
+            SELECT i.id, i.user_account_id, i.email
+            FROM invitations i
+            WHERE i.token_hash = %s
               AND accepted_at IS NULL
               AND revoked_at IS NULL
               AND expires_at > now()
@@ -171,10 +186,11 @@ async def auth_callback(
         connection.execute(
             """
             UPDATE user_identities
-            SET email = %s, email_verified = true, last_signed_in_at = now()
+            SET email = CASE WHEN %s THEN %s ELSE email END,
+                last_signed_in_at = now()
             WHERE user_account_id = %s
             """,
-            (email, account_id),
+            (verified_email and bool(email), email, account_id),
         )
 
     account = connection.execute(
@@ -186,7 +202,11 @@ async def auth_callback(
         """,
         (account_id,),
     ).fetchone()
-    if account is None or account["status"] != "active" or account["contact_status"] == "archived":
+    if (
+        account is None
+        or account["status"] != "active"
+        or account["contact_status"] == "archived"
+    ):
         raise HTTPException(status_code=403, detail="Account is not active")
 
     raw_session, _ = create_session(connection, account_id)
@@ -245,8 +265,7 @@ def me(
         last_name=user.last_name,
         email=user.email,
         roles=[
-            UserRoleResponse(role=row["role"], group=row["group_name"])
-            for row in roles
+            UserRoleResponse(role=row["role"], group=row["group_name"]) for row in roles
         ],
     )
 
@@ -264,22 +283,30 @@ def create_invitation(
         (payload.contact_id,),
     ).fetchone()
     if contact is None or contact["status"] == "archived" or not contact["email"]:
-        raise HTTPException(status_code=400, detail="Contact must be active and have an email")
+        raise HTTPException(
+            status_code=400, detail="Contact must be active and have an email"
+        )
     account = connection.execute(
         """
         INSERT INTO user_accounts (contact_id, status)
         VALUES (%s, 'invited')
         ON CONFLICT (contact_id) DO UPDATE
-          SET status = CASE
-            WHEN user_accounts.status = 'closed' THEN 'invited'::user_account_status
-            ELSE user_accounts.status
-          END
+          SET status = user_accounts.status
         RETURNING id, status
         """,
         (payload.contact_id,),
     ).fetchone()
-    if account["status"] == "active":
-        raise HTTPException(status_code=409, detail="Contact already has an active account")
+    if (
+        account["status"] != "invited"
+        or connection.execute(
+            "SELECT 1 FROM user_identities WHERE user_account_id = %s",
+            (account["id"],),
+        ).fetchone()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Account requires recovery or already has an identity",
+        )
     connection.execute(
         """
         UPDATE invitations
@@ -295,7 +322,12 @@ def create_invitation(
           user_account_id, invited_by_user_account_id, email, token_hash
         ) VALUES (%s, %s, %s, %s)
         """,
-        (account["id"], authorization.user.account_id, contact["email"].lower(), hash_secret_token(raw_token)),
+        (
+            account["id"],
+            authorization.user.account_id,
+            contact["email"].lower(),
+            hash_secret_token(raw_token),
+        ),
     )
     audit_event(
         connection,

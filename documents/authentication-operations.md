@@ -135,3 +135,23 @@ client secrets or the OIDC transaction secret, an administrator's external accou
 the host or database, and incorrect contact/role/family data. Secret rotation,
 database backups, HTTPS termination, security monitoring, administrator recovery, and
 retention rules must be defined before production launch.
+
+### Verified email and account recovery
+
+New identity links require an explicit `email_verified=true` claim and an `email`
+matching the invitation. `preferred_username` is not an email-verification signal.
+Microsoft Entra's ordinary email/username claims do not establish mailbox ownership:
+see [Microsoft's ID token claim reference](https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference).
+Until an independent mailbox-verification flow is implemented, providers that do
+not supply verified email cannot accept invitations. The test OIDC provider emits
+verified email and supports testing both configured provider names.
+
+Already-linked identities sign in using their validated provider, issuer, and
+subject. Missing or unverified email claims do not replace the stored verified
+address or block that existing identity's sign-in.
+
+Invitation acceptance locks and checks the account before consuming the invitation.
+Only `invited` accounts can activate. Invitation creation returns 409 for active,
+suspended, closed, or already-linked accounts; reopening those accounts requires a
+separately designed recovery flow. Failed OIDC exchange and identity-verification
+audit events commit independently from the rejected request transaction.
