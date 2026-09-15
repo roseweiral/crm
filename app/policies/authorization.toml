@@ -147,3 +147,41 @@ resource = "contact"
 source = "access_role"
 relationship = "Global System Administrator"
 scope = "all"
+
+[actions."directory:view"]
+description = "Browse the organisation-wide address book of adult volunteers."
+resource = "directory-entry"
+
+[[actions."directory:view".rules]]
+# Anyone currently holding one of these organisational roles, in any group, can
+# browse the whole directory - this is not scoped to their own branch.
+source = "group_role"
+relationship = "Group Leader"
+scope = "all"
+
+[[actions."directory:view".rules]]
+source = "group_role"
+relationship = "Group Helper"
+scope = "all"
+
+[[actions."directory:view".rules]]
+source = "group_role"
+relationship = "Area Manager"
+scope = "all"
+
+[[actions."directory:view".rules]]
+# Reads the is_global flag rather than naming a specific access role, so any
+# future global role is admitted automatically.
+source = "access_role_flag"
+relationship = "is_global"
+scope = "all"
+
+[actions."directory-visibility:manage-own"]
+description = "Read and change your own address-book visibility settings."
+resource = "directory-entry"
+
+[[actions."directory-visibility:manage-own".rules]]
+# Every authenticated contact manages their own visibility, whether or not
+# they currently hold an eligible role.
+source = "self"
+scope = "self"

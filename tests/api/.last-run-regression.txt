@@ -1,0 +1,660 @@
+ Image crm-pytest-app Building 
+ Image crm-pytest-fake-oidc Building 
+ Image crm-pytest-database Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.43kB done
+#1 DONE 0.0s
+
+#2 [database internal] load build definition from Dockerfile
+#2 transferring dockerfile: 227B done
+#2 DONE 0.0s
+
+#3 [app internal] load build definition from Dockerfile
+#3 transferring dockerfile: 494B done
+#3 DONE 0.0s
+
+#4 [fake-oidc internal] load build definition from Dockerfile
+#4 transferring dockerfile: 246B done
+#4 DONE 0.0s
+
+#5 [fake-oidc internal] load metadata for docker.io/library/python:3.12-slim
+#5 DONE 0.0s
+
+#6 [database internal] load metadata for docker.io/library/postgres:16-alpine
+#6 DONE 0.0s
+
+#7 [fake-oidc internal] load .dockerignore
+#7 transferring context: 2B done
+#7 DONE 0.0s
+
+#8 [app internal] load .dockerignore
+#8 transferring context: 85B done
+#8 DONE 0.0s
+
+#9 [database internal] load .dockerignore
+#9 transferring context: 80B done
+#9 DONE 0.0s
+
+#10 [fake-oidc internal] load build context
+#10 transferring context: 177B done
+#10 DONE 0.0s
+
+#11 [app internal] load build context
+#11 transferring context: 1.76kB done
+#11 DONE 0.0s
+
+#12 [database internal] load build context
+#12 transferring context: 926B done
+#12 DONE 0.0s
+
+#13 [app 1/5] FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#13 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de 0.0s done
+#13 DONE 0.0s
+
+#14 [app base 2/5] WORKDIR /app
+#14 CACHED
+
+#15 [app base 4/5] RUN pip install --no-cache-dir --requirement requirements.txt
+#15 CACHED
+
+#16 [app base 3/5] COPY requirements.txt .
+#16 CACHED
+
+#17 [app base 5/5] COPY . .
+#17 CACHED
+
+#18 [fake-oidc 3/5] COPY requirements.txt .
+#18 CACHED
+
+#19 [fake-oidc 4/5] RUN pip install --no-cache-dir --requirement requirements.txt
+#19 CACHED
+
+#20 [fake-oidc 2/5] WORKDIR /fake-oidc
+#20 CACHED
+
+#21 [fake-oidc 5/5] COPY . .
+#21 CACHED
+
+#22 [database 1/4] FROM docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+#22 resolve docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 0.0s done
+#22 DONE 0.0s
+
+#23 [database 2/4] COPY schema.sql /docker-entrypoint-initdb.d/001-schema.sql
+#23 CACHED
+
+#24 [database 3/4] COPY --chmod=755 init/002-import-seed.sh /docker-entrypoint-initdb.d/002-import-seed.sh
+#24 CACHED
+
+#25 [database 4/4] COPY seed /seed
+#25 CACHED
+
+#26 [database] exporting to image
+#26 exporting layers done
+#26 exporting manifest sha256:6e7878955978a6c5a0675b7f839151317f479e2626fd4872b9a1039ee27735a6 done
+#26 exporting config sha256:25d763adfe39c6dcecd75d4bb834149de3453cd89cc65ff05ba709f5e623cdda done
+#26 exporting attestation manifest sha256:ffb0f0a425a6632a29ca59e813ac06b185096b375cfa82f63acaa8ad443ef119 0.0s done
+#26 exporting manifest list sha256:475be2cfcde538352b872e41fd67e1837df1afc5827691a2a9f93bafa9567a3c done
+#26 naming to docker.io/library/crm-pytest-database:latest done
+#26 unpacking to docker.io/library/crm-pytest-database:latest 0.0s done
+#26 DONE 0.1s
+
+#27 [fake-oidc] exporting to image
+#27 exporting layers done
+#27 exporting manifest sha256:7c8ef7b28a764f0e28acd27605197e290d3e5fb4811762cc958f6a276de09bac done
+#27 exporting config sha256:f84c385ce06534c71b0af7d8daea37b9da9d2cd90adba52adfeda33a8753df32 done
+#27 exporting attestation manifest sha256:b56d0ac442d9376c88a2b5f9359addd3182e52b4e5d9f167a22894c3ae246cb3 0.0s done
+#27 exporting manifest list sha256:4494be1d870f8f65d57307e224261b177fe1aa451232289f8d1c0b67ae732a12 done
+#27 naming to docker.io/library/crm-pytest-fake-oidc:latest done
+#27 unpacking to docker.io/library/crm-pytest-fake-oidc:latest done
+#27 DONE 0.1s
+
+#28 [app] exporting to image
+#28 exporting layers done
+#28 exporting manifest sha256:66f1a48da8840f372c4eb761695e262d999ff8d8d546fb718e2a7425f791c6fc done
+#28 exporting config sha256:1b2432540bea6a5880efbc1cdc4ec1ed02af6b2ba247db26b4986adbaecc101b done
+#28 exporting attestation manifest sha256:7415e4d670978da4387f4d996704d1bde7ec2a9f35afa34191dd4b79150b4f3e 0.0s done
+#28 exporting manifest list sha256:75e41b25145209605dafd3b48c86d9f9bff0ab0d34d71375ca7eeea8edca95be done
+#28 naming to docker.io/library/crm-pytest-app:latest done
+#28 unpacking to docker.io/library/crm-pytest-app:latest done
+#28 DONE 0.1s
+
+#29 [fake-oidc] resolving provenance for metadata file
+#29 DONE 0.0s
+
+#30 [app] resolving provenance for metadata file
+#30 DONE 0.0s
+
+#31 [database] resolving provenance for metadata file
+#31 DONE 0.0s
+ Image crm-pytest-app Built 
+ Image crm-pytest-database Built 
+ Image crm-pytest-fake-oidc Built 
+ Container crm-pytest-fake-oidc-1 Recreate 
+ Container crm-pytest-database-1 Recreate 
+ Container crm-pytest-database-1 Recreated 
+ Container crm-pytest-app-1 Recreate 
+ Container crm-pytest-fake-oidc-1 Recreated 
+ Container crm-pytest-app-1 Recreated 
+ Container crm-pytest-fake-oidc-1 Starting 
+ Container crm-pytest-database-1 Starting 
+ Container crm-pytest-database-1 Started 
+ Container crm-pytest-database-1 Waiting 
+ Container crm-pytest-fake-oidc-1 Started 
+ Container crm-pytest-database-1 Healthy 
+ Container crm-pytest-app-1 Starting 
+ Container crm-pytest-app-1 Started 
+ Image crm-pytest-api-tester Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.83kB done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 470B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 75.57kB done
+#5 DONE 0.0s
+
+#6 [1/7] FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#6 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de done
+#6 DONE 0.0s
+
+#7 [2/7] WORKDIR /workspace
+#7 CACHED
+
+#8 [3/7] COPY app/requirements.txt ./app/requirements.txt
+#8 CACHED
+
+#9 [4/7] COPY tests/api/requirements.txt ./tests/api/requirements.txt
+#9 CACHED
+
+#10 [5/7] RUN pip install --no-cache-dir --requirement app/requirements.txt --requirement tests/api/requirements.txt
+#10 CACHED
+
+#11 [6/7] COPY app ./app
+#11 CACHED
+
+#12 [7/7] COPY tests/api ./tests/api
+#12 DONE 0.0s
+
+#13 exporting to image
+#13 exporting layers 0.0s done
+#13 exporting manifest sha256:f629fb669901f11bad4bdc368e42f0786493d31053fc55bd759c65fcfeffe96c done
+#13 exporting config sha256:8c3f7e3876376f4474089f880b7fa862d3a4994e157262892e96c163e7265a30 done
+#13 exporting attestation manifest sha256:b059b9bad81880ec8e7ba5022052509dfe0991170b8c537cae87285acef870ce done
+#13 exporting manifest list sha256:a81148336db04b0db7c1bf68d4742628751ec7e4489721ea7a69391ec66f5091 done
+#13 naming to docker.io/library/crm-pytest-api-tester:latest done
+#13 unpacking to docker.io/library/crm-pytest-api-tester:latest done
+#13 DONE 0.1s
+
+#14 resolving provenance for metadata file
+#14 DONE 0.0s
+ Image crm-pytest-api-tester Built 
+ Container crm-pytest-database-1 Waiting 
+ Container crm-pytest-app-1 Waiting 
+ Container crm-pytest-fake-oidc-1 Waiting 
+ Container crm-pytest-fake-oidc-1 Healthy 
+ Container crm-pytest-database-1 Healthy 
+ Container crm-pytest-app-1 Healthy 
+ Container crm-pytest-api-tester-run-86a4478face1 Creating 
+ Container crm-pytest-api-tester-run-86a4478face1 Created 
+contacts: 60 RECORDS ADDED
+user_accounts: 60 RECORDS ADDED
+user_identities: 60 RECORDS ADDED
+invitations: 0 RECORDS ADDED
+user_sessions: 0 RECORDS ADDED
+role_types: 3 RECORDS ADDED
+group_types: 5 RECORDS ADDED
+family_units: 15 RECORDS ADDED
+award_types: 3 RECORDS ADDED
+groups: 11 RECORDS ADDED
+contact_roles_groups: 23 RECORDS ADDED
+contact_family_units: 30 RECORDS ADDED
+contact_awards: 15 RECORDS ADDED
+permissions: 1 RECORDS ADDED
+access_roles: 2 RECORDS ADDED
+access_role_permissions: 2 RECORDS ADDED
+user_access_role_assignments: 1 RECORDS ADDED
+audit_events: 0 RECORDS ADDED
+TOTAL: 291 RECORDS GENERATED
+
+=== RUNNING REGRESSION TESTS ===
+FFFFFFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+___________ test_inactive_role_grants_no_directory_presence[future] ____________
+
+records = <function records.<locals>.insert at 0xffff7fe83560>
+person = <function person.<locals>.create at 0xffff7fe83740>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 468342, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('6aeb39f3-cc67-404b-818d-81961ef8fef1'), 'id': UUID('306b589d-adbb-4447-be5c-f467704021c9'), ...}
+viewer = '0WTwJZJtjyXLjysrisd56BYWXByslvgD0l_vUnwalMmWhoxyNpJndCc1ha-Dmzmu'
+period = 'future'
+
+    @pytest.mark.parametrize("period", ["future", "expired"])
+    def test_inactive_role_grants_no_directory_presence(records, person, group, viewer, period):
+        contact, _ = person()
+        today = date.today()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=today + timedelta(days=1) if period == "future" else today - timedelta(days=2),
+            end_date=None if period == "future" else today - timedelta(days=1),
+        )
+>       assert str(contact["id"]) not in visible_contact_ids(viewer)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_scope.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+token = '0WTwJZJtjyXLjysrisd56BYWXByslvgD0l_vUnwalMmWhoxyNpJndCc1ha-Dmzmu'
+
+    def visible_contact_ids(token):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": token},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:62: AssertionError
+___________ test_inactive_role_grants_no_directory_presence[expired] ___________
+
+records = <function records.<locals>.insert at 0xffff7e2e5260>
+person = <function person.<locals>.create at 0xffff7e2e53a0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 535274, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('8d2b52a3-cb14-4f5e-8204-a6fa4d8b7500'), 'id': UUID('b4bf31bb-7a46-4928-a696-9d2e031322d6'), ...}
+viewer = 'LstsvyuW-1FhvSYn919H_Ve2l_lDLRTPHku3l48On6S0NNRuaw6hpBklA5p8Lla_'
+period = 'expired'
+
+    @pytest.mark.parametrize("period", ["future", "expired"])
+    def test_inactive_role_grants_no_directory_presence(records, person, group, viewer, period):
+        contact, _ = person()
+        today = date.today()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=today + timedelta(days=1) if period == "future" else today - timedelta(days=2),
+            end_date=None if period == "future" else today - timedelta(days=1),
+        )
+>       assert str(contact["id"]) not in visible_contact_ids(viewer)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_scope.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+token = 'LstsvyuW-1FhvSYn919H_Ve2l_lDLRTPHku3l48On6S0NNRuaw6hpBklA5p8Lla_'
+
+    def visible_contact_ids(token):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": token},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:62: AssertionError
+__________ test_archived_contact_is_excluded_even_with_an_active_role __________
+
+records = <function records.<locals>.insert at 0xffff7e2e5580>
+person = <function person.<locals>.create at 0xffff7e2e58a0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 585072, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('773a59dd-18cf-46d7-8d3e-d8518c10728c'), 'id': UUID('8b5be189-7c66-4158-af94-b7d437ff6e7a'), ...}
+viewer = '-6750e4NvOS5DwQ_SJEaJUsmrgJRmGd2cgyHZXpSvtwvceSaqYxT9-JlSPg_-vhJ'
+
+    def test_archived_contact_is_excluded_even_with_an_active_role(records, person, group, viewer):
+        contact, _ = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        with psycopg.connect(DATABASE_URL) as connection:
+            connection.execute(
+                "UPDATE contacts SET status = 'archived' WHERE id = %s", (contact["id"],)
+            )
+>       assert str(contact["id"]) not in visible_contact_ids(viewer)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_scope.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+token = '-6750e4NvOS5DwQ_SJEaJUsmrgJRmGd2cgyHZXpSvtwvceSaqYxT9-JlSPg_-vhJ'
+
+    def visible_contact_ids(token):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": token},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:62: AssertionError
+_____ test_a_role_type_outside_the_eligible_set_grants_no_directory_access _____
+
+records = <function records.<locals>.insert at 0xffff7e2e5d00>
+person = <function person.<locals>.create at 0xffff7e2e5e40>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 633296, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('cfb77567-900d-494e-92d7-3e4126b367fb'), 'id': UUID('a04c5658-0769-4040-9f0b-75563d0deaaa'), ...}
+viewer = 'iY4QC5L6o1WvbrOb21ymf9u9KbajO6iXJ-T1ahlMdYoVJmMm1lK-wHdIWYm6ui3x'
+
+    def test_a_role_type_outside_the_eligible_set_grants_no_directory_access(
+        records, person, group, viewer
+    ):
+        contact, _ = person()
+        other_role_type = records("role_types", name=f"Committee Member {uuid4()}")
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=other_role_type["id"],
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+>       assert str(contact["id"]) not in visible_contact_ids(viewer)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_scope.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+token = 'iY4QC5L6o1WvbrOb21ymf9u9KbajO6iXJ-T1ahlMdYoVJmMm1lK-wHdIWYm6ui3x'
+
+    def visible_contact_ids(token):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": token},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:62: AssertionError
+____ test_hiding_every_eligible_role_removes_the_contact_from_the_directory ____
+
+records = <function records.<locals>.insert at 0xffff7e2e62a0>
+person = <function person.<locals>.create at 0xffff7e2e5a80>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 677587, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('9145512e-3042-4d46-b625-767f4a954b44'), 'id': UUID('b763554a-90e4-473e-9612-59ca7adc6bae'), ...}
+viewer = '4XncORQse9Kwoh7a-VvDgypG2yWeEfxOtgoCBjDIGlDwwkIjKDsw1EuzkwmjHgsa'
+
+    def test_hiding_every_eligible_role_removes_the_contact_from_the_directory(
+        records, person, group, viewer
+    ):
+        contact, _ = person()
+>       records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+            hidden_from_directory=True,
+        )
+
+tests/api/test_address_book_scope.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/api/conftest.py:37: in insert
+    row = connection.execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <psycopg.Connection [BAD] at 0xffff7fd4bb30>
+query = Composed([SQL('INSERT INTO '), Identifier('contact_roles_groups'), SQL(' ('), Composed([Identifier('contact_id'), SQL(..., Placeholder(), SQL(', '), Placeholder(), SQL(', '), Placeholder(), SQL(', '), Placeholder()]), SQL(') RETURNING *')])
+params = (UUID('8a0188cb-dae4-42dd-8cf9-16e51c472329'), UUID('a8b14fc1-07f9-55ef-868e-acf278d2d075'), UUID('b763554a-90e4-473e-9612-59ca7adc6bae'), datetime.date(2026, 9, 13), True)
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -> Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+>           raise ex.with_traceback(None)
+E           psycopg.errors.UndefinedColumn: column "hidden_from_directory" of relation "contact_roles_groups" does not exist
+E           LINE 1: ...ct_id", "role_type_id", "group_id", "start_date", "hidden_fr...
+E                                                                        ^
+
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:257: UndefinedColumn
+______________ test_a_contact_still_appears_via_a_non_hidden_role ______________
+
+records = <function records.<locals>.insert at 0xffff7e2e6700>
+person = <function person.<locals>.create at 0xffff7e2e6ca0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 720739, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('5c01d9bf-c626-4bb1-b73d-5581ce14a6b6'), 'id': UUID('37192686-2df4-4e10-9fbf-f9a693af076c'), ...}
+viewer = 'vffqkB5YD5RsLWwB6GVj-yEtYLvF1gfOArE6QyEJp0y6E7rG0yf3TvsncyURJB_s'
+
+    def test_a_contact_still_appears_via_a_non_hidden_role(records, person, group, viewer):
+        contact, _ = person()
+>       records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+            hidden_from_directory=True,
+        )
+
+tests/api/test_address_book_scope.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/api/conftest.py:37: in insert
+    row = connection.execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <psycopg.Connection [BAD] at 0xffff7fd4ce60>
+query = Composed([SQL('INSERT INTO '), Identifier('contact_roles_groups'), SQL(' ('), Composed([Identifier('contact_id'), SQL(..., Placeholder(), SQL(', '), Placeholder(), SQL(', '), Placeholder(), SQL(', '), Placeholder()]), SQL(') RETURNING *')])
+params = (UUID('48cfec15-bd98-4257-8ba1-5a81329fe308'), UUID('a8b14fc1-07f9-55ef-868e-acf278d2d075'), UUID('37192686-2df4-4e10-9fbf-f9a693af076c'), datetime.date(2026, 9, 13), True)
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -> Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+>           raise ex.with_traceback(None)
+E           psycopg.errors.UndefinedColumn: column "hidden_from_directory" of relation "contact_roles_groups" does not exist
+E           LINE 1: ...ct_id", "role_type_id", "group_id", "start_date", "hidden_fr...
+E                                                                        ^
+
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:257: UndefinedColumn
+____________ test_self_hide_removes_the_contact_regardless_of_roles ____________
+
+records = <function records.<locals>.insert at 0xffff7e2e6b60>
+person = <function person.<locals>.create at 0xffff7e2e7560>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 27, 36, 763403, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('83acf838-3b19-4482-b7d8-09a2e6bbc119'), 'id': UUID('f7c28ab4-82ae-4203-892b-a2a5948862d7'), ...}
+viewer = 'YWLj_UCysR7DMbX8jXpHdxSELKx4J9jhcPdhGcasJYaNmuH4cu3YGqrX3RTg8Soq'
+
+    def test_self_hide_removes_the_contact_regardless_of_roles(records, person, group, viewer):
+        contact, _ = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Area Manager"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        with psycopg.connect(DATABASE_URL) as connection:
+>           connection.execute(
+                "UPDATE contacts SET hidden_from_directory = true WHERE id = %s",
+                (contact["id"],),
+            )
+
+tests/api/test_address_book_scope.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <psycopg.Connection [BAD] at 0xffff7fd4d790>
+query = 'UPDATE contacts SET hidden_from_directory = true WHERE id = %s'
+params = (UUID('6c2afec6-c5a1-4fa8-945a-d7a2999d8ec7'),)
+
+    def execute(
+        self,
+        query: Query,
+        params: Params | None = None,
+        *,
+        prepare: bool | None = None,
+        binary: bool = False,
+    ) -> Cursor[Row]:
+        """Execute a query and return a cursor to read its results."""
+        try:
+            cur = self.cursor()
+            if binary:
+                cur.format = BINARY
+    
+            return cur.execute(query, params, prepare=prepare)
+        except e._NO_TRACEBACK as ex:
+>           raise ex.with_traceback(None)
+E           psycopg.errors.UndefinedColumn: column "hidden_from_directory" of relation "contacts" does not exist
+E           LINE 1: UPDATE contacts SET hidden_from_directory = true WHERE id = ...
+E                                       ^
+
+/usr/local/lib/python3.12/site-packages/psycopg/connection.py:257: UndefinedColumn
+______________ test_an_ordinary_contact_with_no_role_is_rejected _______________
+
+person = <function person.<locals>.create at 0xffff7e2e76a0>
+session_token = <function session_token.<locals>.create at 0xffff7e2e7f60>
+
+    def test_an_ordinary_contact_with_no_role_is_rejected(person, session_token):
+        _, account = person()
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 403
+E       assert 404 == 403
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:177: AssertionError
+____________ test_a_parent_with_no_organisational_role_is_rejected _____________
+
+records = <function records.<locals>.insert at 0xffff7e2e7880>
+person = <function person.<locals>.create at 0xffff7e2e67a0>
+session_token = <function session_token.<locals>.create at 0xffff7e2e7600>
+
+    def test_a_parent_with_no_organisational_role_is_rejected(records, person, session_token):
+        """A family relationship alone must not grant address-book access — only an
+        organisational or global access role does (documents/family-and-directory-design.md)."""
+        parent, account = person()
+        family = records("family_units", id=uuid4())
+        records(
+            "contact_family_units",
+            contact_id=parent["id"],
+            family_unit_id=family["id"],
+            relationship="parent",
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 403
+E       assert 404 == 403
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:196: AssertionError
+________ test_eligible_adults_see_each_other_across_unrelated_branches _________
+
+records = <function records.<locals>.insert at 0xffff7e2e7560>
+person = <function person.<locals>.create at 0xffff7e2e7060>
+session_token = <function session_token.<locals>.create at 0xffff7e2e6d40>
+
+    def test_eligible_adults_see_each_other_across_unrelated_branches(records, person, session_token):
+        branch_a_type = records("group_types", name=f"Branch A type {uuid4()}")
+        branch_a = records("groups", group_type_id=branch_a_type["id"], name=f"Branch A {uuid4()}")
+        branch_b_type = records("group_types", name=f"Branch B type {uuid4()}")
+        branch_b = records("groups", group_type_id=branch_b_type["id"], name=f"Branch B {uuid4()}")
+    
+        viewer, viewer_account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=viewer["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=branch_a["id"],
+            start_date=date.today(),
+        )
+        other, _ = person()
+        records(
+            "contact_roles_groups",
+            contact_id=other["id"],
+            role_type_id=role_type_id("Area Manager"),
+            group_id=branch_b["id"],
+            start_date=date.today(),
+        )
+    
+        viewer_token = session_token(viewer_account["id"])
+    
+        # The existing hierarchy-scoped endpoint keeps the two branches apart...
+        contacts_detail = httpx.get(
+            f"{API_URL}/api/v1/contacts/{other['id']}",
+            cookies={"crm_session": viewer_token},
+            timeout=5,
+        )
+        assert contacts_detail.status_code == 404
+    
+        # ...but the address book, built for exactly this case, connects them.
+>       assert str(other["id"]) in visible_contact_ids(viewer_token)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_scope.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+token = 'vyw2IwwfbQXgdp1p3m1BOwp06pOgwYCZu2yqzli978IKG3e2CLni6MDleGrdbJf2'
+
+    def visible_contact_ids(token):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": token},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_scope.py:62: AssertionError
+=========================== short test summary info ============================
+FAILED tests/api/test_address_book_scope.py::test_inactive_role_grants_no_directory_presence[future]
+FAILED tests/api/test_address_book_scope.py::test_inactive_role_grants_no_directory_presence[expired]
+FAILED tests/api/test_address_book_scope.py::test_archived_contact_is_excluded_even_with_an_active_role
+FAILED tests/api/test_address_book_scope.py::test_a_role_type_outside_the_eligible_set_grants_no_directory_access
+FAILED tests/api/test_address_book_scope.py::test_hiding_every_eligible_role_removes_the_contact_from_the_directory
+FAILED tests/api/test_address_book_scope.py::test_a_contact_still_appears_via_a_non_hidden_role
+FAILED tests/api/test_address_book_scope.py::test_self_hide_removes_the_contact_regardless_of_roles
+FAILED tests/api/test_address_book_scope.py::test_an_ordinary_contact_with_no_role_is_rejected
+FAILED tests/api/test_address_book_scope.py::test_a_parent_with_no_organisational_role_is_rejected
+FAILED tests/api/test_address_book_scope.py::test_eligible_adults_see_each_other_across_unrelated_branches
+10 failed, 198 deselected in 0.58s
+

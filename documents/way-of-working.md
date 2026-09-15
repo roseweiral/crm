@@ -34,6 +34,11 @@ inconsistent authorization rules creep in.
   any test is written against it.
 - Do not implement behavior the contract doesn't describe yet. Extend the
   contract before extending the code.
+- When an increment changes the database schema, update
+  [`database/db.dbml`](database/db.dbml) at this stage too. It is the
+  source of truth for the schema — `database/schema.sql` is not. Agree
+  the model in DBML before any migration or `schema.sql` change is
+  written.
 
 ## 2. Create tests using TDD
 
@@ -56,6 +61,14 @@ inconsistent authorization rules creep in.
   `AuthorizationService` (see [`authorization-architecture.md`](authorization-architecture.md))
   rather than duplicating rules per router.
 - Run the complete suite — not just the new tests — before moving to review.
+- Bring `database/schema.sql` into line with the already-agreed `db.dbml`.
+  Never edit the schema first and update DBML as an afterthought.
+- There is no live system yet: every environment is built fresh from
+  `schema.sql` plus demo/seed data, so a schema change is made directly in
+  `schema.sql` rather than through a migration under `database/migrations/`.
+  Start writing migrations once a real database exists that has to keep its
+  data across a schema change — `database/migrations/README.md` and its one
+  existing example show the shape that will take.
 
 ## 4. Review and retest
 

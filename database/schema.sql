@@ -39,6 +39,7 @@ CREATE TABLE contacts (
   email varchar UNIQUE,
   status contact_status NOT NULL DEFAULT 'active',
   can_login boolean NOT NULL DEFAULT false,
+  hidden_from_directory boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now()
 );
@@ -187,6 +188,7 @@ CREATE TABLE contact_roles_groups (
   group_id uuid NOT NULL,
   start_date date NOT NULL,
   end_date date,
+  hidden_from_directory boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_contact_roles_groups_contact
@@ -281,6 +283,7 @@ CREATE TABLE user_access_role_assignments (
   group_id uuid,
   start_date date NOT NULL DEFAULT current_date,
   end_date date,
+  hidden_from_directory boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_user_access_role_assignments_account

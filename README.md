@@ -33,6 +33,7 @@ the relevant one instead of reading the whole tree.
 | --- | --- |
 | [API contract](documents/api-contract.md) | The behavioral specification for each endpoint increment; source of truth for write behavior |
 | [Contact-writes review](documents/reviews/contact-writes.md) | TDD evidence and follow-up findings from the first write increment |
+| [Address-book review](documents/reviews/address-book.md) | TDD evidence and follow-up findings from the organisation-wide address book increment |
 | [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
 | [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
 | [App README](app/README.md) | FastAPI application entry points |

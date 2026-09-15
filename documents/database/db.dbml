@@ -1,5 +1,10 @@
 // Initial MVP data model for the volunteer CRM.
 // A contact can hold a role within one or more groups.
+//
+// This file is the source of truth for the database schema. When the schema
+// changes, update this model first, then bring database/schema.sql and any
+// new file under database/migrations/ into line with it — never the other
+// way around.
 
 Enum family_relationship_type {
   child
@@ -40,6 +45,7 @@ Table contacts {
   email varchar [unique]
   status contact_status [not null, default: 'active']
   can_login boolean [not null, default: false]
+  hidden_from_directory boolean [not null, default: false, note: 'Opts the contact out of the organisation-wide address book entirely.']
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 }
@@ -142,6 +148,7 @@ Table contact_roles_groups {
   group_id uuid [not null]
   start_date date [not null]
   end_date date
+  hidden_from_directory boolean [not null, default: false, note: 'Hides this one assignment from the address book while the contact otherwise appears via other roles.']
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 
@@ -212,6 +219,7 @@ Table user_access_role_assignments {
   group_id uuid
   start_date date [not null, default: `current_date`]
   end_date date
+  hidden_from_directory boolean [not null, default: false, note: 'Hides this one assignment from the address book while the contact otherwise appears via other roles.']
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 }
