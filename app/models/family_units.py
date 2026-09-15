@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class FamilyRelationship(str, Enum):
@@ -23,6 +23,13 @@ class FamilyMember(BaseModel):
     first_name: str
     last_name: str
     relationship: FamilyRelationship
+    is_main_contact: bool
+
+
+class SetMainContact(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contact_id: UUID
 
 
 class FamilyUnitDetail(FamilyUnit):

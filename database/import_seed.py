@@ -19,7 +19,10 @@ SEED_DIRECTORY = Path(__file__).with_name("seed")
 TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "contacts",
-        ("id", "first_name", "last_name", "email", "status", "can_login"),
+        (
+            "id", "first_name", "last_name", "email", "status", "can_login",
+            "date_of_birth", "preferred_name", "phonetic_name", "pronouns", "gender",
+        ),
     ),
     ("user_accounts", ("id", "contact_id", "status")),
     (
@@ -55,6 +58,28 @@ TABLE_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "contact_family_units",
         ("id", "contact_id", "family_unit_id", "relationship"),
+    ),
+    (
+        "contact_family_main_contacts",
+        ("id", "family_unit_id", "contact_id", "start_date", "end_date"),
+    ),
+    (
+        "contact_phone_numbers",
+        (
+            "id", "contact_id", "phone_type", "number", "is_primary", "start_date",
+            "end_date",
+        ),
+    ),
+    (
+        "contact_addresses",
+        (
+            "id", "contact_id", "address_type", "line1", "line2", "city", "region",
+            "postcode", "country", "start_date", "end_date",
+        ),
+    ),
+    (
+        "contact_emergency_contacts",
+        ("id", "contact_id", "emergency_contact_id", "priority", "relationship"),
     ),
     (
         "contact_awards",
@@ -107,8 +132,10 @@ def converter_for(table: str, column: str) -> Callable[[str], Any]:
         return date.fromisoformat
     if column.endswith("_at"):
         return datetime.fromisoformat
-    if column in {"can_login", "email_verified", "is_global"}:
+    if column in {"can_login", "email_verified", "is_global", "is_primary"}:
         return parse_boolean
+    if column == "priority":
+        return int
     return str
 
 

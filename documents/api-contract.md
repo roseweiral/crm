@@ -13,7 +13,14 @@ and writes to other resources are future increments, not implemented promises.
 Each increment follows documentation → failing tests → implementation → review;
 see [`way-of-working.md`](way-of-working.md) for the detailed cycle.
 
-The second increment, specified below, is the organisation-wide address book and its self-service visibility settings.
+The second increment, specified below, is the organisation-wide address book and its self-service visibility settings. The third is the read-only documentation browser. The fourth, fifth, and sixth are the three contact-data-expansion prerequisites (Main Contact tracking, the Group-Leader-exact-group write scope, and its family extension). The seventh is contact details (phone numbers and addresses). The eighth
+is personal details (date of birth, preferred name, phonetic name,
+pronouns, gender). The ninth is emergency contact — see
+[`contact-data-expansion-design.md`](contact-data-expansion-design.md).
+It also introduces `contact:view-sensitive`, a new read permission
+separate from ordinary `contact:view`. The tenth, specified below, is a
+read-only contact profile aggregate for the frontend's contact details
+page.
 
 ## Shared conventions
 
@@ -36,11 +43,44 @@ The second increment, specified below, is the organisation-wide address book and
 
 ## Write authorization and CSRF
 
-Only a current Global System Administrator may create or update contacts in this
-increment, via separate `contact:create` and `contact:update` policy actions.
-Viewing a contact, being a parent, or holding a group role does not grant editing.
-Future scoped writes must check both ends of a relationship and restrict fields
-that can grant permissions.
+A current Global System Administrator may create or update any contact, via
+separate `contact:create` and `contact:update` policy actions. Resolving
+[open questions](open-questions.md) #4: a current Group Leader may also
+update — full field access, including archiving, no restricted subset —
+any contact holding an active role in their *exact* assigned group, not
+descendant groups, **and every contact sharing a family unit with one of
+those group members** (any `contact_family_units` relationship, not only
+`parent` — a sibling or guardian in the same family unit is included the
+same way). This second part is broader than open question #4 itself asked
+for; it's the write-access model agreed in
+`contact-data-expansion-design.md` for the contact-data-expansion
+categories, applied here to the existing basic fields too so it has a real,
+testable consumer rather than sitting unused in the policy engine until
+the first new-field category ships. `contact:create` is unaffected:
+creating a contact has no group to scope against yet, and combining
+contact creation with a group role assignment in one request is not
+designed. Viewing a contact, being a parent, or holding any other group
+role (Group Helper, Area Manager) does not grant editing. Future scoped
+writes must check both ends of a relationship and restrict fields that can
+grant permissions.
+
+Two new combinations for the policy engine, both `source = "group_role"`:
+`scope = "group"` (the caller's own assigned group only, computed without
+the descendant-walking recursion `group_descendants` already uses — see
+[`groups_by_role` docs](authorization-architecture.md)), and
+`scope = "group_and_family"` (that same exact-group set, extended through
+`contact_family_units` to every other member of each group member's family
+unit). `contact:update`'s Group Leader rule uses `group_and_family`; `group`
+alone remains available for any future action that wants the exact-group
+restriction without the family extension.
+
+`contact:view` gains the same `group_and_family` rule for Group Leader too,
+additive to its existing `group_descendants` rule (which is unchanged, and
+keeps covering the full hierarchy for reads exactly as before). Not an
+independent scope decision: the PATCH concurrency pattern requires a prior
+GET to obtain the current ETag, so a write-only extension with no matching
+read access would be unusable in practice — the same relationship already
+implicit everywhere else `contact:update` and `contact:view` overlap.
 
 New contact writes require all of:
 
@@ -383,9 +423,474 @@ found"}`. 401 for no session.
 - Editing documentation from the app — this is a read-only mirror of what's
   already in the repo.
 
+## Main Contact tracking
+
+Resolves the first prerequisite from
+[`contact-data-expansion-design.md`](contact-data-expansion-design.md):
+who currently holds Main Contact status for a family unit, and an
+administrative way to change it. This is deliberately narrower than full
+family-membership writes (item 1 under "Following increments" below) —
+it does not add, remove, or edit family members or relationships, only
+tracks and changes who among the *existing* members is the Main Contact.
+
+### Reading Main Contact status
+
+`GET /api/v1/family-units/{family_unit_id}` gains `is_main_contact` on
+each entry in `members`, `true` for at most one member (the one with a
+current — `end_date IS NULL` — row in the new
+`contact_family_main_contacts` table), `false` for every other member,
+including one with no eligible relationship type at all. No change to who
+can call this endpoint or to the collection endpoint's shape; `family:view`
+already gates this data, and Main Contact status is no more sensitive than
+the relationships already returned.
+
+### Changing Main Contact
+
+`POST /api/v1/family-units/{family_unit_id}/main-contact`
+
+```json
+{"contact_id": "..."}
+```
+
+Sets `contact_id` as the family unit's current Main Contact, ending the
+previous holder's tenure (`end_date = today`) in the same transaction a
+new row starts (`start_date = today`). Returns 200 with the updated
+`FamilyUnitDetail` (the same shape `GET` returns).
+
+- Requires a valid `crm_session`, plus the standard write headers
+  (`X-CRM-CSRF: 1`, matching `Origin`, `Content-Type: application/json`) —
+  the same `require_json_write` dependency every other write uses. No
+  `If-Match`/ETag: this is a single-field state change with a natural
+  idempotency key (the target `contact_id`), not a multi-field resource
+  edit, so the existing contact-writes concurrency pattern doesn't apply;
+  the family unit row is locked `FOR UPDATE` for the duration of the
+  check-then-write to serialize concurrent attempts instead.
+- Authorization: `family:manage-main-contact`, granted to Global System
+  Administrator only for now — matching how contact writes themselves
+  started. A safeguarding-driven handover (the motivating example in
+  `family-and-directory-design.md`) is exactly the kind of action that
+  should stay admin-only until there's a specific reason to widen it, not
+  the kind to default open.
+- `contact_id` must reference a *current* member of this family unit
+  (a row in `contact_family_units` for this `family_unit_id`) whose
+  `relationship` is not `child` — matching "any adult relationship type is
+  eligible to become Main Contact" from `family-and-directory-design.md`.
+  A `contact_id` that isn't a member at all, or is a `child` member, returns
+  422 — the same "referenced id must be one of your own/eligible rows"
+  pattern already used for `directory-visibility:manage-own`'s role patches,
+  not 404, since the family unit itself does exist.
+- Setting `contact_id` to whoever is *already* the current Main Contact is
+  a no-op: 200, unchanged state, no new history row, no audit event, no
+  session revocation. Nothing changed.
+- On an actual change: the outgoing Main Contact's active sessions are
+  revoked in the same transaction as the handover — the same "archiving a
+  contact revokes its sessions immediately" pattern from contact writes,
+  applied here per `family-and-directory-design.md`'s explicit note that a
+  Main Contact change "should likely revoke the outgoing Main Contact's
+  sessions the same way." The incoming Main Contact's account and sessions
+  are untouched by this endpoint; whether they can already sign in is a
+  separate, existing concern (account status, invitations), not created or
+  modified here.
+- Commits a `family.main_contact_changed` audit event alongside the
+  resource change (same transaction, same rollback-together rule as every
+  other write): actor, `family_unit_id`, outgoing and incoming
+  `contact_id` — record IDs, not profile values, matching the existing
+  audit convention.
+
+### Database changes
+
+New table, added directly to `schema.sql` (no live database yet, per
+`way-of-working.md`) and already reflected in `db.dbml`, the source of
+truth: **`contact_family_main_contacts`** — `family_unit_id`, `contact_id`,
+`start_date`, `end_date` (nullable), timestamps. A partial unique index on
+`family_unit_id` where `end_date IS NULL` enforces at most one current Main
+Contact per family, mirroring the existing "exactly one active Group
+Leader per group" constraint.
+
+### Not in this increment
+
+- Family creation and membership writes (adding/removing members, new
+  family units) — item 1 under "Following increments" below.
+- The Group-Leader-exact-group write scope and its family extension —
+  `contact-data-expansion-design.md`'s Prerequisites 2 and 3, separate
+  increments.
+- Any change to who can *read* family data — `family:view`'s existing
+  scope is unchanged.
+
+## Contact details: phone numbers and addresses
+
+`contact-data-expansion-design.md`'s first actual data category, on top of
+its three now-delivered prerequisites. Two new, independent resources —
+phone numbers and addresses — sharing the same dated-history shape
+(`start_date`/`end_date`, the `contact_roles_groups` pattern) and the same
+write-access model, agreed in that design session.
+
+### Write-access model
+
+New actions, `contact-phone:update` and `contact-address:update` — deliberately
+distinct from `contact:update`, which keeps its own narrower rules (Global
+System Administrator plus Group-Leader-exact-group, per
+[open questions](open-questions.md) #4, with no self or Main-Contact rule).
+Both new actions grant write access to:
+
+- Global System Administrator (`all`), matching every other write action in
+  this system.
+- The contact themselves (`self`).
+- The current Main Contact of the contact's family unit — a new policy
+  source, `main_contact_family`, reading `contact_family_main_contacts`
+  (Prerequisite 1's table) and reusing the existing family-resource
+  resolution unchanged.
+- A Group Leader, for contacts holding an active role in their exact group
+  and those contacts' family members (`group_and_family`, reused unchanged
+  from Prerequisite 3).
+
+Area Manager and Group Helper get no write rule. Reading either resource
+reuses the existing `contact:view` scope directly, unmodified: it's already
+a superset of what these write rules grant (for example, it also lets any
+parent — not only the Main Contact — view their whole family), so no new
+read permission is needed.
+
+### Phone numbers
+
+`GET /api/v1/contact-phone-numbers`
+
+Optional `contact_id` filter; without it, returns every phone number row
+the caller's `contact:view` scope covers. Paginated like every other
+collection. Includes historical (end-dated) rows as well as current ones —
+`end_date IS NULL` is how a client identifies the current set.
+
+| Field | Description |
+| --- | --- |
+| id | Server-assigned |
+| contact_id | Owning contact |
+| phone_type | `mobile`, `home`, `work`, or `other` |
+| number | Free text — no format validation this increment |
+| is_primary | At most one `true` among a contact's *current* numbers |
+| start_date, end_date | `end_date` null while current |
+
+`GET /api/v1/contact-phone-numbers/{id}` returns one row plus a strong
+ETag, same pattern as contact detail GET. 404 for a phone number outside
+the caller's `contact:view` scope, concealing existence like every other
+detail endpoint.
+
+`POST /api/v1/contact-phone-numbers`
+
+```json
+{"contact_id": "...", "phone_type": "mobile", "number": "...", "is_primary": false}
+```
+
+Creates a new, current row (`start_date` defaults to today, `end_date`
+null). `is_primary` defaults to `false`. Setting `is_primary: true`
+atomically un-sets it on any other current phone number for the same
+contact, in the same transaction — the "one current holder, handled
+atomically" pattern `contact_family_main_contacts` established, applied
+here so a client never needs two round-trips to change which number is
+primary. Requires `contact-phone:update` on `contact_id`. 201, `Location`,
+ETag.
+
+`PATCH /api/v1/contact-phone-numbers/{id}`
+
+Any nonempty subset of `phone_type`, `number`, `is_primary`, `end_date`.
+Setting `end_date` is how a number is retired — no hard deletion, matching
+every other resource in this system. `If-Match` required, same strong-tag
+rules as contact PATCH (428 missing, 422 malformed, 412 stale). Requires
+`contact-phone:update` on the row's `contact_id`.
+
+### Addresses
+
+`GET /api/v1/contact-addresses`, `GET /api/v1/contact-addresses/{id}`,
+`POST /api/v1/contact-addresses`, `PATCH /api/v1/contact-addresses/{id}` —
+identical shape to phone numbers above (same pagination, `contact_id`
+filter, ETag/If-Match concurrency, `contact-address:update` authorization),
+with these differences:
+
+| Field | Description |
+| --- | --- |
+| address_type | `home` (default), `work`, or `other` |
+| line1 | Required |
+| line2, city, region, postcode, country | All optional |
+
+No `is_primary` — `address_type` already disambiguates concurrent
+addresses, and this session's design didn't ask for a separate "preferred"
+flag the way phone numbers have one.
+
+### Shared conventions
+
+- Same write-header requirements as every other write: `X-CRM-CSRF: 1`,
+  matching `Origin`, `Content-Type: application/json`.
+- Resource change and a `contact_phone_number.created`/`.updated` (or
+  `contact_address.created`/`.updated`) success audit event commit
+  together; audit failure rolls back the resource change, following the
+  existing contact-writes transaction rule.
+- 401/403/404/415/422/428/412 follow "Shared conventions" above exactly.
+
+### Database changes
+
+Two new tables, added directly to `schema.sql` and already reflected in
+`db.dbml`: **`contact_phone_numbers`** (`contact_id`, `phone_type`,
+`number`, `is_primary`, `start_date`, `end_date`, timestamps) and
+**`contact_addresses`** (`contact_id`, `address_type`, `line1`, `line2`,
+`city`, `region`, `postcode`, `country`, `start_date`, `end_date`,
+timestamps). A partial unique index on `contact_phone_numbers
+(contact_id)` where `is_primary AND end_date IS NULL` enforces at most one
+current primary number per contact.
+
+### Not in this increment
+
+- Bulk import or CSV upload of phone numbers or addresses.
+- Any "primary address" concept — deliberately not designed this session.
+- Validating phone number format or postal address structure beyond the
+  required fields above — this increment is data capture, not
+  validation or geocoding.
+
+## Personal details
+
+`contact-data-expansion-design.md`'s second data category. Five new,
+nullable columns directly on `contacts` (no new table): `date_of_birth`,
+`preferred_name`, `phonetic_name`, `pronouns`, `gender`. Surfaced through
+the *existing* contact endpoints rather than new ones — `GET
+/api/v1/contacts`, `GET /api/v1/contacts/{id}`, and `PATCH
+/api/v1/contacts/{id}` — since the data lives on the same row.
+
+| Field | Description |
+| --- | --- |
+| date_of_birth | Nullable date. Must not be in the future. |
+| preferred_name | Nullable free text — the name someone goes by, distinct from `first_name`. |
+| phonetic_name | Nullable free text, e.g. `"SHE-von"` for `"Siobhan"` — no controlled vocabulary for pronunciation. |
+| pronouns | Nullable free text rather than a fixed list. |
+| gender | Nullable free text, same reasoning as pronouns. |
+
+### Reading
+
+Reuses `contact:view` unmodified. The five fields simply appear in
+`Contact` (list) and `ContactDetail` (detail) responses alongside the
+existing fields — no separate read permission, matching phone numbers and
+addresses.
+
+### Writing: one endpoint, two independently-checked authorizations
+
+`contact:update` keeps its existing, narrower rules (Global System
+Administrator plus Group-Leader-exact-group only, no self-write —
+`open-questions.md` #4) unchanged. A new action, `contact-personal:update`,
+grants the full write-access model this design session agreed to
+(Global System Administrator; the contact themselves; the family's current
+Main Contact; a Group Leader over their exact group and its members'
+families) — the same shape as `contact-phone:update` and
+`contact-address:update`.
+
+`PATCH /api/v1/contacts/{id}` accepts any nonempty subset of its existing
+fields (`first_name`, `last_name`, `email`, `status`) *and* the five new
+ones, in one payload, one transaction, one `If-Match`. Which
+authorization(s) must pass depends on which fields the payload actually
+sets:
+
+- Any of `first_name`/`last_name`/`email`/`status` present → `contact:update`
+  must be satisfied for this contact.
+- Any of `date_of_birth`/`preferred_name`/`phonetic_name`/`pronouns`/`gender`
+  present → `contact-personal:update` must be satisfied for this contact.
+- Both groups present in one payload → both checks apply. If either fails,
+  the whole request is rejected (403) — no partial writes.
+
+This lets a contact update their own `preferred_name`/`pronouns`/
+`date_of_birth` without ever being granted `contact:update` (legal name,
+email, and status stay exactly as restricted as before), while an
+admin, Main Contact, or Group Leader can change either or both kinds of
+field in a single call.
+
+`email` and all five personal-detail fields may be set explicitly to
+`null` (clearing a previously-set value); `first_name`, `last_name`, and
+`status` may not. Same `If-Match` mechanics as today — the strong ETag
+covers the full `ContactDetail` representation, so it changes whenever
+any field does, personal or core. The `contact.updated` audit event is
+unchanged in shape (`{"contact_id", "fields"}`); `fields` simply may now
+include personal-detail field names.
+
+### Not in this increment
+
+- Setting personal-detail fields at contact creation (`POST
+  /api/v1/contacts`) — write them via `PATCH` after creation.
+- Any format/plausibility validation beyond "`date_of_birth` is not in the
+  future" — `preferred_name`/`phonetic_name`/`pronouns`/`gender` are
+  unvalidated free text, matching every other free-text field in this
+  system.
+
+## Emergency contact
+
+`contact-data-expansion-design.md`'s third data category. One new table,
+`contact_emergency_contacts` — an ordered, per-contact list of who to
+contact in an emergency, each entry pointing at another CRM contact
+(never free text: if the right person isn't a contact yet, they're added
+as one, with no login, before being set as an emergency contact).
+Deliberately **not** dated/historical, unlike phone numbers and
+addresses — this session only asked for the current, ordered list, not a
+queryable history of past emergency contacts, so there's no
+`start_date`/`end_date` and removal is a genuine `DELETE`, not an
+end-dating. (Design doc: "Revisit if that turns out to be wrong.")
+
+| Field | Description |
+| --- | --- |
+| id | Server-assigned |
+| contact_id | Whose emergency contact this is |
+| emergency_contact_id | Who to contact — FK to `contacts.id` |
+| priority | Integer, `1` = primary, `2` = secondary, etc. |
+| relationship | Free text (`"Mother"`, `"Neighbour"`, `"Family friend"`) — not constrained to `family_relationship_type`, since an emergency contact isn't always an existing family relationship |
+
+Constraints: `contact_id <> emergency_contact_id` (422 if equal); unique
+`(contact_id, priority)` and unique `(contact_id, emergency_contact_id)`
+(409 on either violation — the caller reorders by patching the
+conflicting row first, no automatic shifting, unlike phone numbers'
+`is_primary` swap: priority is an explicit ordinal the client controls,
+and silently renumbering other rows on the caller's behalf could
+surprise it).
+
+### Reading: `contact:view-sensitive`, not `contact:view`
+
+Unlike phone numbers, addresses, and personal details, reading emergency
+contacts requires a new, separately-grantable action,
+`contact:view-sensitive`, rather than riding on ordinary `contact:view` —
+so, for example, a Group Helper who can see a child's name and roles
+doesn't automatically see who their emergency contact is. Per this
+session's decision, `contact:view-sensitive` mirrors `contact:view`'s
+*entire* current rule set exactly (Global System Administrator → all;
+Area Manager → `group_descendants`; Group Leader → `group_descendants` and
+`group_and_family`; family `Parent` → `family`; `self` → `self`) — being a
+separate action, rather than a new rule on `contact:view` itself, means it
+can be tightened independently later (for example, requiring a
+safeguarding-training flag) without touching ordinary contact visibility.
+
+### Writing: `contact-emergency-contact:update`
+
+Same write-access model as `contact-phone:update`/`contact-address:update`:
+Global System Administrator; the contact themselves (`self`); the family's
+current Main Contact (`main_contact_family`, scope `family`); a Group
+Leader over their exact group and its members' families
+(`group_and_family`). Area Manager and Group Helper get no write rule.
+
+`GET /api/v1/contact-emergency-contacts` — optional `contact_id` filter;
+without it, every row the caller's `contact:view-sensitive` scope covers.
+Paginated like every other collection.
+
+`GET /api/v1/contact-emergency-contacts/{id}` — one row plus a strong
+ETag. 404 outside the caller's `contact:view-sensitive` scope, concealing
+existence like every other detail endpoint.
+
+`POST /api/v1/contact-emergency-contacts` —
+```json
+{"contact_id": "...", "emergency_contact_id": "...", "priority": 1, "relationship": "Mother"}
+```
+Requires `contact-emergency-contact:update` on `contact_id`. 422 if
+`contact_id == emergency_contact_id` or `emergency_contact_id` doesn't
+refer to an existing contact. 409 on a `priority` or
+`emergency_contact_id` already used by this `contact_id`. 201, `Location`,
+ETag.
+
+`PATCH /api/v1/contact-emergency-contacts/{id}` — any nonempty subset of
+`emergency_contact_id`, `priority`, `relationship`. Same `If-Match`,
+authorization, and 422/409 rules as `POST`, checked against the row's
+existing `contact_id`.
+
+`DELETE /api/v1/contact-emergency-contacts/{id}` — the only hard-delete
+endpoint in this system, matching the "not dated/historical" schema
+decision above. Requires `contact-emergency-contact:update` on the row's
+`contact_id` and the same `If-Match` mechanics as `PATCH` (428 missing,
+422 malformed, 412 stale) — deleting a row a client hasn't seen the latest
+version of is rejected the same way an out-of-date `PATCH` is. 204 No
+Content on success; 404 outside scope.
+
+### Shared conventions
+
+- Same write-header requirements as every other write: `X-CRM-CSRF: 1`,
+  matching `Origin`, `Content-Type: application/json` (not required for
+  `DELETE`, which has no body).
+- Resource change and a `contact_emergency_contact.created`/`.updated`/
+  `.deleted` success audit event commit together; audit failure rolls back
+  the resource change.
+- 401/403/404/415/422/428/412 follow "Shared conventions" above exactly.
+
+### Not in this increment
+
+- Any notification or reminder tied to emergency contacts (e.g. prompting
+  a Group Leader to confirm the list is current before an event).
+- Restoring a deleted emergency contact — there is no undo; re-`POST` it.
+
+## Contact profile (read-only aggregate)
+
+The frontend's contact details page needs personal details, phone
+numbers, addresses, and emergency contacts together, without four
+round-trips per page load. Deliberately **not** achieved by embedding
+those into `ContactDetail` itself: `ContactDetail`'s ETag drives
+`PATCH /api/v1/contacts/{id}`'s optimistic-concurrency check, and folding
+in data that changes independently (a phone number edited elsewhere)
+would make that ETag go stale for reasons unrelated to what the caller
+actually edited. Instead, a separate, read-only, unversioned endpoint:
+
+`GET /api/v1/contacts/{contact_id}/profile`
+
+```json
+{
+  "contact": { "...": "same shape as GET /api/v1/contacts/{id}" },
+  "phone_numbers": [{ "id": "...", "phone_type": "mobile", "number": "...", "is_primary": true }],
+  "addresses": [{ "id": "...", "address_type": "home", "line1": "...", "...": "..." }],
+  "emergency_contacts": [{
+    "id": "...", "emergency_contact_id": "...", "priority": 1, "relationship": "Mother",
+    "first_name": "...", "last_name": "...", "email": "...", "phone_number": "..."
+  }]
+}
+```
+
+- `contact`: identical fields to `GET /api/v1/contacts/{id}`, gated by
+  `contact:view` exactly as that endpoint is - 404 if the contact doesn't
+  exist or is out of the caller's `contact:view` scope, concealing
+  existence the same way.
+- `phone_numbers`, `addresses`: **current only** (`end_date IS NULL`) -
+  this is a "what do I need to know right now" view, not a history
+  browser; the existing `GET /api/v1/contact-phone-numbers` and
+  `/contact-addresses` collection endpoints remain how historical rows
+  are queried. Gated by `contact:view` (unchanged - reused directly, same
+  as those endpoints' own read side).
+- `emergency_contacts`: gated separately by `contact:view-sensitive`. When
+  the caller has `contact:view` but not `contact:view-sensitive` for this
+  contact, the key is `null` - meaning "you can't see this" - never `[]`,
+  which would misleadingly mean "recorded as having none." Each entry
+  embeds the referenced contact's `first_name`, `last_name`, `email`, and
+  `phone_number` directly - the whole point of an emergency contact is
+  being able to actually reach them, so a page showing this list needs
+  that without a second round-trip per entry. `phone_number` is that
+  person's current primary number if they have one, else their most
+  recently added current number, else `null` if they have none recorded.
+  Deliberately **not** gated by a further permission check against the
+  referenced person's own record: once the caller is permitted to see
+  *whose* emergency contact someone is (`contact:view-sensitive` on the
+  contact being viewed), withholding how to reach that person would
+  defeat the feature's purpose. `emergency_contact_id` remains present
+  too, for a future link to that contact's own profile.
+- No `ETag`, no `If-Match` - this endpoint is display-only. Writes still
+  go through each resource's own endpoint (`PATCH /api/v1/contacts/{id}`,
+  the `contact-phone-numbers`/`contact-addresses`/
+  `contact-emergency-contacts` endpoints), each with its own ETag.
+- No pagination - a contact has a small, bounded number of current phone
+  numbers, addresses, and emergency contacts.
+- 401 unauthenticated; no CSRF requirements (a `GET`, like every other
+  read endpoint).
+
+### Not in this increment
+
+- Any other resource gaining a `/profile`-shaped aggregate (family units,
+  groups) - added only where a real frontend page needs it, per this
+  session's decision.
+- Including historical (end-dated) phone numbers or addresses in the
+  aggregate.
+- Medical conditions, once that category ships - this endpoint gains a
+  fourth key then, gated by the same `contact:view-sensitive` action
+  already used for `emergency_contacts`.
+
 ## Following increments (design pending)
 
 1. Family creation and membership add/change/remove; delete only empty families.
+   (Main Contact *tracking* — who currently holds it, and changing that —
+   is specified above, not deferred; this item is the remaining, larger
+   family-membership-write surface: adding/removing members, changing
+   relationship types, creating new family units.)
 2. Role/group assignments, date validation, end dating and correction deletion.
 3. Group creation/editing/movement with cycle and dependency checks.
 4. Reference data writes after stable policy identifiers replace role-name coupling.

@@ -1,6 +1,6 @@
 """Contact API response models."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Annotated
 from uuid import UUID
@@ -12,8 +12,11 @@ from pydantic import (
     EmailStr,
     Field,
     StringConstraints,
+    field_validator,
     model_validator,
 )
+
+from models.contact_details import ContactAddress, ContactPhoneNumber
 
 
 class ContactStatus(str, Enum):
@@ -29,6 +32,11 @@ class Contact(BaseModel):
     email: str | None
     status: ContactStatus
     can_login: bool
+    date_of_birth: date | None
+    preferred_name: str | None
+    phonetic_name: str | None
+    pronouns: str | None
+    gender: str | None
 
 
 class ContactDetail(Contact):
@@ -56,6 +64,19 @@ ContactName = Annotated[
     ),
 ]
 NormalizedEmail = Annotated[EmailStr, AfterValidator(lambda value: value.lower())]
+# Free text, but nullable - unlike ContactName, these five fields may be
+# explicitly cleared, so the type stays Optional rather than using the
+# hidden-default-rejects-null trick below.
+PersonalDetailText = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=100,
+        strict=True,
+        pattern=r"^[^\x00-\x1f\x7f]+$",
+    ),
+]
 
 
 class ContactCreate(BaseModel):
@@ -67,6 +88,14 @@ class ContactCreate(BaseModel):
     status: ContactStatus = ContactStatus.ACTIVE
 
 
+# Fields gated by contact:update - unchanged access since open-questions.md #4.
+CORE_CONTACT_FIELDS = frozenset({"first_name", "last_name", "email", "status"})
+# Fields gated by contact-personal:update (documents/api-contract.md "Personal details").
+PERSONAL_DETAIL_FIELDS = frozenset(
+    {"date_of_birth", "preferred_name", "phonetic_name", "pronouns", "gender"}
+)
+
+
 class ContactPatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -76,9 +105,54 @@ class ContactPatch(BaseModel):
     last_name: ContactName = Field(default_factory=lambda: None)
     email: NormalizedEmail | None = None
     status: ContactStatus = Field(default_factory=lambda: None)
+    date_of_birth: date | None = None
+    preferred_name: PersonalDetailText | None = None
+    phonetic_name: PersonalDetailText | None = None
+    pronouns: PersonalDetailText | None = None
+    gender: PersonalDetailText | None = None
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def date_of_birth_not_in_future(cls, value: date | None) -> date | None:
+        if value is not None and value > date.today():
+            raise ValueError("date_of_birth must not be in the future")
+        return value
 
     @model_validator(mode="after")
     def require_changes(self) -> "ContactPatch":
         if not self.model_fields_set:
             raise ValueError("At least one editable field is required")
         return self
+
+
+class ContactProfileEmergencyContact(BaseModel):
+    """An emergency-contact entry, with the referenced person's own basic
+    contact details embedded - so a page showing this list can actually
+    reach them without a second request per entry. phone_number is that
+    person's current primary number, falling back to their most recently
+    added current number, or None if they have none recorded.
+    """
+
+    id: UUID
+    emergency_contact_id: UUID
+    priority: int
+    relationship: str
+    first_name: str
+    last_name: str
+    email: str | None
+    phone_number: str | None
+
+
+class ContactProfile(BaseModel):
+    """Read-only aggregate for the frontend's contact details page.
+
+    See documents/api-contract.md "Contact profile (read-only aggregate)".
+    emergency_contacts is None (not []) when the caller lacks
+    contact:view-sensitive for this contact - distinct from a real empty
+    list, which means "recorded as having none".
+    """
+
+    contact: ContactDetail
+    phone_numbers: list[ContactPhoneNumber]
+    addresses: list[ContactAddress]
+    emergency_contacts: list[ContactProfileEmergencyContact] | None

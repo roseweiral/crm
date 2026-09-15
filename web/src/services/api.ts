@@ -119,12 +119,22 @@ export function getCollection(
   return request<Page<ApiRecord>>(`${path}?${query}`, signal);
 }
 
+/**
+ * `suffix` lets a resource fetch a different detail representation than
+ * its list items - e.g. contacts uses "profile" to bundle phone numbers,
+ * addresses, and emergency contacts into the one detail view (see
+ * documents/api-contract.md "Contact profile (read-only aggregate)").
+ * That bundle has no top-level `id` of its own, so this returns the
+ * looser `Record<string, unknown>` rather than `ApiRecord`.
+ */
 export function getDetail(
   path: string,
   id: string,
+  suffix?: string,
   signal?: AbortSignal,
-): Promise<ApiRecord> {
-  return request<ApiRecord>(`${path}/${id}`, signal);
+): Promise<Record<string, unknown>> {
+  const detailPath = suffix ? `${path}/${id}/${suffix}` : `${path}/${id}`;
+  return request<Record<string, unknown>>(detailPath, signal);
 }
 
 export function getAddressBook(

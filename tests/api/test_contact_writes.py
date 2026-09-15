@@ -2,6 +2,7 @@
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from uuid import uuid4
 
 import httpx
@@ -622,3 +623,298 @@ def test_contact_email_migration_fails_on_collisions_and_can_be_repeated():
 def test_contact_write_requires_security_headers(writer, header):
     del writer.headers[header]
     assert writer.post("/api/v1/contacts", json=payload()).status_code == 403
+
+
+# --- Group-Leader-exact-group write scope -----------------------------------
+# See documents/api-contract.md "Write authorization and CSRF" and
+# documents/open-questions.md #4.
+
+
+def role_type_id(name):
+    return database_rows("SELECT id FROM role_types WHERE name = %s", (name,))[0]["id"]
+
+
+@pytest.fixture
+def hierarchy(records):
+    group_type = records("group_types", name=f"Write-scope hierarchy {uuid4()}")
+    root = records("groups", group_type_id=group_type["id"], name=f"Root {uuid4()}")
+    child = records(
+        "groups", group_type_id=group_type["id"], name=f"Child {uuid4()}", parent_id=root["id"]
+    )
+    unrelated = records("groups", group_type_id=group_type["id"], name=f"Unrelated {uuid4()}")
+    return root, child, unrelated
+
+
+@pytest.fixture
+def group_leader_writer(callback_client, records, person, session_token):
+    """Authenticate the routed client as a fresh Group Leader of the given group."""
+
+    def become_leader_of(group_id):
+        leader, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=leader["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group_id,
+            start_date=date.today(),
+        )
+        client, _ = callback_client
+        client.cookies.set("crm_session", session_token(account["id"]))
+        client.headers.update({"Origin": "http://localhost:5173", "X-CRM-CSRF": "1"})
+        return client
+
+    return become_leader_of
+
+
+def test_group_leader_can_update_a_contact_in_their_exact_group(
+    records, person, group_leader_writer, hierarchy
+):
+    root, _child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{member['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": tag(client, member)},
+    )
+    assert response.status_code == 200
+    assert response.json()["first_name"] == "Updated"
+
+
+def test_group_leader_can_archive_a_contact_in_their_exact_group(
+    records, person, group_leader_writer, hierarchy
+):
+    """"Full Read/Write/Archive" per open-questions.md #4 - no restricted subset."""
+    root, _child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{member['id']}",
+        json={"status": "archived"},
+        headers={"If-Match": tag(client, member)},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "archived"
+
+
+def test_group_leader_cannot_update_a_contact_in_a_descendant_group(
+    records, person, group_leader_writer, hierarchy
+):
+    root, child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=child["id"],
+        start_date=date.today(),
+    )
+
+    # Existing read scope (group_descendants, unchanged) still admits this
+    # contact - the point of this test is that write access does not.
+    assert client.get(f"/api/v1/contacts/{member['id']}").status_code == 200
+
+    response = client.patch(
+        f"/api/v1/contacts/{member['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": '"placeholder"'},
+    )
+    assert response.status_code == 403
+
+
+def test_group_leader_cannot_update_a_contact_in_an_unrelated_group(
+    records, person, group_leader_writer, hierarchy
+):
+    root, _child, unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    outsider, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=outsider["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=unrelated["id"],
+        start_date=date.today(),
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{outsider['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": '"placeholder"'},
+    )
+    assert response.status_code == 403
+
+
+def test_group_leader_cannot_create_contacts(group_leader_writer, hierarchy):
+    root, _child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+
+    response = client.post("/api/v1/contacts", json=payload())
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("role", ["Area Manager", "Group Helper"])
+def test_other_roles_cannot_write_contacts_even_in_their_own_group(
+    records, person, session_token, hierarchy, role
+):
+    root, _child, _unrelated = hierarchy
+    holder, holder_account = person()
+    records(
+        "contact_roles_groups",
+        contact_id=holder["id"],
+        role_type_id=role_type_id(role),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+
+    with httpx.Client(cookies={"crm_session": session_token(holder_account["id"])}) as client:
+        response = client.patch(
+            f"{API_URL}/api/v1/contacts/{member['id']}",
+            json={"first_name": "Updated"},
+            headers={
+                "If-Match": '"placeholder"',
+                "Origin": "http://localhost:5173",
+                "X-CRM-CSRF": "1",
+            },
+            timeout=5,
+        )
+    assert response.status_code == 403
+
+
+# --- Group-role-to-family extension (Prerequisite 3) -------------------------
+# See documents/contact-data-expansion-design.md and the "Write authorization
+# and CSRF" section's group_and_family note.
+
+
+def test_group_leader_can_update_a_family_member_of_someone_in_their_group(
+    records, person, group_leader_writer, hierarchy
+):
+    root, _child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+    family = records("family_units", id=uuid4())
+    records(
+        "contact_family_units",
+        contact_id=member["id"],
+        family_unit_id=family["id"],
+        relationship="child",
+    )
+    parent, _ = person()
+    records(
+        "contact_family_units",
+        contact_id=parent["id"],
+        family_unit_id=family["id"],
+        relationship="parent",
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{parent['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": tag(client, parent)},
+    )
+    assert response.status_code == 200
+    assert response.json()["first_name"] == "Updated"
+
+
+def test_group_leader_can_update_a_non_parent_family_member_too(
+    records, person, group_leader_writer, hierarchy
+):
+    """"Family members", not just parents - any contact_family_units row."""
+    root, _child, _unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    member, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=member["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=root["id"],
+        start_date=date.today(),
+    )
+    family = records("family_units", id=uuid4())
+    records(
+        "contact_family_units",
+        contact_id=member["id"],
+        family_unit_id=family["id"],
+        relationship="child",
+    )
+    guardian, _ = person()
+    records(
+        "contact_family_units",
+        contact_id=guardian["id"],
+        family_unit_id=family["id"],
+        relationship="guardian",
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{guardian['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": tag(client, guardian)},
+    )
+    assert response.status_code == 200
+
+
+def test_group_leader_cannot_update_a_family_member_of_an_unrelated_contact(
+    records, person, group_leader_writer, hierarchy
+):
+    root, _child, unrelated = hierarchy
+    client = group_leader_writer(root["id"])
+    outsider, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=outsider["id"],
+        role_type_id=role_type_id("Group Helper"),
+        group_id=unrelated["id"],
+        start_date=date.today(),
+    )
+    family = records("family_units", id=uuid4())
+    records(
+        "contact_family_units",
+        contact_id=outsider["id"],
+        family_unit_id=family["id"],
+        relationship="child",
+    )
+    outsiders_parent, _ = person()
+    records(
+        "contact_family_units",
+        contact_id=outsiders_parent["id"],
+        family_unit_id=family["id"],
+        relationship="parent",
+    )
+
+    response = client.patch(
+        f"/api/v1/contacts/{outsiders_parent['id']}",
+        json={"first_name": "Updated"},
+        headers={"If-Match": '"placeholder"'},
+    )
+    assert response.status_code == 403

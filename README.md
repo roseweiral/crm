@@ -38,6 +38,13 @@ the relevant one instead of reading the whole tree.
 | [Address-book frontend review](documents/reviews/address-book-frontend.md) | TDD evidence, the same-site cookie fix, and follow-up findings from the address book's frontend increment |
 | [Documentation browser review](documents/reviews/documents-endpoint.md) | TDD evidence and follow-up findings from the in-app documentation browser's API increment |
 | [Documentation browser frontend review](documents/reviews/documents-frontend.md) | TDD evidence and follow-up findings from the documentation browser's frontend increment |
+| [Main Contact tracking review](documents/reviews/main-contact-tracking.md) | TDD evidence and follow-up findings from the Main Contact tracking increment (contact-data-expansion Prerequisite 1) |
+| [Group-Leader-exact-group write scope review](documents/reviews/group-leader-write-scope.md) | TDD evidence and design notes for the Group Leader contact-write scope (contact-data-expansion Prerequisite 2) |
+| [Group-role-to-family write extension review](documents/reviews/group-leader-family-write-extension.md) | TDD evidence and design notes extending Group Leader writes to their group members' families (contact-data-expansion Prerequisite 3) |
+| [Contact details endpoints review](documents/reviews/contact-details-endpoints.md) | TDD evidence and design notes for phone number and address CRUD, the first contact-data-expansion data category |
+| [Personal details endpoint review](documents/reviews/personal-details-endpoint.md) | TDD evidence and design notes for date of birth, preferred name, phonetic name, pronouns, and gender on the existing contact endpoints |
+| [Emergency contact endpoint review](documents/reviews/emergency-contact-endpoint.md) | TDD evidence and design notes for the emergency contact list, the new contact:view-sensitive permission, and the system's one hard-delete endpoint |
+| [Contact profile endpoint review](documents/reviews/contact-profile-endpoint.md) | TDD evidence and design notes for the read-only aggregate endpoint powering the frontend's contact details page |
 | [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
 | [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
 | [App README](app/README.md) | FastAPI application entry points |

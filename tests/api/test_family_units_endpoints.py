@@ -35,9 +35,14 @@ def test_get_family_unit_returns_all_members_and_relationships() -> None:
           c.id AS contact_id,
           c.first_name,
           c.last_name,
-          cfu.relationship
+          cfu.relationship,
+          (cfmc.contact_id IS NOT NULL) AS is_main_contact
         FROM contact_family_units cfu
         JOIN contacts c ON c.id = cfu.contact_id
+        LEFT JOIN contact_family_main_contacts cfmc
+          ON cfmc.family_unit_id = cfu.family_unit_id
+         AND cfmc.contact_id = cfu.contact_id
+         AND cfmc.end_date IS NULL
         WHERE cfu.family_unit_id = %s
         ORDER BY c.last_name, c.first_name, c.id
         """,

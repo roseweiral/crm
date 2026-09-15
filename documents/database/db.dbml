@@ -38,6 +38,19 @@ Enum identity_provider {
   microsoft
 }
 
+Enum contact_phone_type {
+  mobile
+  home
+  work
+  other
+}
+
+Enum contact_address_type {
+  home
+  work
+  other
+}
+
 Table contacts {
   id uuid [pk, default: `gen_random_uuid()`]
   first_name varchar [not null]
@@ -46,6 +59,11 @@ Table contacts {
   status contact_status [not null, default: 'active']
   can_login boolean [not null, default: false]
   hidden_from_directory boolean [not null, default: false, note: 'Opts the contact out of the organisation-wide address book entirely.']
+  date_of_birth date
+  preferred_name varchar [note: 'The name someone goes by, distinct from their legal first_name.']
+  phonetic_name varchar [note: 'Free text phonetic spelling, e.g. "SHE-von" for "Siobhan" - no controlled vocabulary for pronunciation.']
+  pronouns varchar [note: 'Free text rather than a fixed list, so it never fails to represent how someone describes themselves.']
+  gender varchar [note: 'Free text, same reasoning as pronouns.']
   created_at timestamptz [not null, default: `now()`]
   modified_at timestamptz [not null, default: `now()`]
 }
@@ -170,6 +188,69 @@ Table contact_family_units {
   }
 }
 
+Table contact_family_main_contacts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  family_unit_id uuid [not null, note: 'The family unit this Main Contact tenure belongs to.']
+  contact_id uuid [not null, note: 'Must be a current, non-child member of that family unit at write time — enforced by the application, not the schema.']
+  start_date date [not null]
+  end_date date [note: 'Null while this tenure is current. Changing Main Contact ends the previous row and starts a new one in the same transaction.']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (family_unit_id) [unique, note: 'Partial: WHERE end_date IS NULL. At most one current Main Contact per family unit — same shape as "one active Group Leader per group."']
+  }
+}
+
+Table contact_phone_numbers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null]
+  phone_type contact_phone_type [not null]
+  number varchar [not null]
+  is_primary boolean [not null, default: false, note: 'Which of possibly several concurrent numbers is preferred - orthogonal to start_date/end_date.']
+  start_date date [not null]
+  end_date date [note: 'Null while current.']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (contact_id) [unique, note: 'Partial: WHERE is_primary AND end_date IS NULL. At most one current primary number per contact.']
+  }
+}
+
+Table contact_addresses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null]
+  address_type contact_address_type [not null, default: 'home']
+  line1 varchar [not null]
+  line2 varchar
+  city varchar
+  region varchar
+  postcode varchar
+  country varchar
+  start_date date [not null]
+  end_date date [note: 'Null while current.']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+}
+
+Table contact_emergency_contacts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null, note: 'Whose emergency contact this is.']
+  emergency_contact_id uuid [not null, note: 'Who to contact - always a CRM contact, never free text.']
+  priority integer [not null, note: '1 = primary, 2 = secondary, ...']
+  relationship varchar [not null, note: 'Free text - not every emergency contact is an existing family relationship.']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (contact_id, priority) [unique]
+    (contact_id, emergency_contact_id) [unique]
+  }
+
+  Note: 'CHECK constraint: contact_id <> emergency_contact_id. Not dated/historical unlike contact_phone_numbers/contact_addresses - removal is a hard DELETE, the one exception to this schema''s no-hard-deletion convention.'
+}
+
 Table contact_awards {
   id uuid [pk, default: `gen_random_uuid()`]
   contact_id uuid [not null]
@@ -244,6 +325,12 @@ Ref: groups.group_type_id > group_types.id
 Ref: groups.parent_id > groups.id
 Ref: contact_family_units.contact_id > contacts.id
 Ref: contact_family_units.family_unit_id > family_units.id
+Ref: contact_family_main_contacts.contact_id > contacts.id
+Ref: contact_family_main_contacts.family_unit_id > family_units.id
+Ref: contact_phone_numbers.contact_id > contacts.id
+Ref: contact_addresses.contact_id > contacts.id
+Ref: contact_emergency_contacts.contact_id > contacts.id
+Ref: contact_emergency_contacts.emergency_contact_id > contacts.id
 Ref: contact_awards.contact_id > contacts.id
 Ref: contact_awards.award_type_id > award_types.id
 Ref: user_accounts.contact_id - contacts.id

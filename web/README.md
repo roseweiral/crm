@@ -30,7 +30,7 @@ screen behavior this document doesn't describe yet.
 | `/address-book/visibility` | My directory visibility | Yes |
 | `/documents` | Documentation browser (no document selected) | Yes |
 | `/documents/:id` | Documentation browser (one document open) | Yes |
-| `/resources` | Generic API browser (unchanged) | Yes |
+| `/resources` | Generic API browser (Contacts' detail view uses the profile aggregate - see below) | Yes |
 
 Every route sits behind the existing app-level session gate: `App.tsx`
 already blocks on `GET /api/v1/me` before rendering any route, showing the
@@ -190,6 +190,34 @@ render path — because it's the one genuinely tricky piece of logic in this
 screen.
 
 **Navigation**: a `Home` link, always visible.
+
+## Generic API browser (`/resources`)
+
+Unchanged in every respect except one: the **Contacts** resource's detail
+view fetches `GET /api/v1/contacts/{id}/profile` instead of
+`GET /api/v1/contacts/{id}`, so opening a contact shows their personal
+details together with their current phone numbers, addresses, and (when
+permitted) emergency contacts in one screen - see
+`documents/api-contract.md` "Contact profile (read-only aggregate)".
+Each emergency contact entry embeds the referenced person's own
+`first_name`/`last_name`/`email`/`phone_number` directly (not just their
+GUID), so the page showing this list can actually reach them without a
+second request per entry. Every other resource (Family Units, Role Types,
+Group Types, Groups, Contact Role Groups) is untouched, still fetching
+its plain detail endpoint.
+
+This works with zero changes to `RecordDetails` or `ResourcePage`'s
+rendering: the component already renders nested objects and arrays
+recursively, so the profile response's `contact`/`phone_numbers`/
+`addresses`/`emergency_contacts` keys just appear as nested sections. A
+`ResourceDefinition` gains an optional `detailSuffix` (`"profile"` for
+Contacts) that `getDetail` appends after the id; every other resource
+leaves it unset and keeps fetching its plain detail URL exactly as
+before. `emergency_contacts` renders as "None" both when it's really `[]`
+(no emergency contacts recorded) and when it's `null` (the viewer lacks
+`contact:view-sensitive`) - this generic viewer doesn't distinguish them;
+a purpose-built contact details page, if one replaces this browser later,
+should.
 
 ## Build, test, and run
 

@@ -14,7 +14,7 @@ interface ResourcePageProps {
 export function ResourcePage({ resource, onHome }: ResourcePageProps) {
   const [pageNumber, setPageNumber] = useState(1);
   const [collection, setCollection] = useState<Page<ApiRecord> | null>(null);
-  const [selected, setSelected] = useState<ApiRecord | null>(null);
+  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +42,7 @@ export function ResourcePage({ resource, onHome }: ResourcePageProps) {
     setLoading(true);
     setError(null);
     try {
-      setSelected(await getDetail(resource.path, id));
+      setSelected(await getDetail(resource.path, id, resource.detailSuffix));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load the record");
     } finally {

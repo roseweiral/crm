@@ -69,6 +69,11 @@ def records():
                     "DELETE FROM audit_events WHERE details->>'invited_contact_id' = %s OR details->>'contact_id' = %s",
                     (str(record_id), str(record_id)),
                 )
+                # Can be created by the set-main-contact endpoint rather than the fixture.
+                connection.execute(
+                    "DELETE FROM contact_family_main_contacts WHERE contact_id = %s",
+                    (record_id,),
+                )
             connection.execute(
                 sql.SQL("DELETE FROM {} WHERE id = %s").format(sql.Identifier(table)),
                 (record_id,),

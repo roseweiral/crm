@@ -7,14 +7,28 @@ import pytest
 
 from .support import API_URL, database_rows, serialise
 
-CONTACT_FIELDS = {"id", "first_name", "last_name", "email", "status", "can_login"}
+CONTACT_FIELDS = {
+    "id",
+    "first_name",
+    "last_name",
+    "email",
+    "status",
+    "can_login",
+    "date_of_birth",
+    "preferred_name",
+    "phonetic_name",
+    "pronouns",
+    "gender",
+}
 pytestmark = pytest.mark.contract
 
 
 def test_get_contacts_returns_first_page_in_name_order() -> None:
     expected_contacts = database_rows(
         """
-        SELECT id, first_name, last_name, email, status, can_login
+        SELECT
+          id, first_name, last_name, email, status, can_login,
+          date_of_birth, preferred_name, phonetic_name, pronouns, gender
         FROM contacts
         ORDER BY last_name, first_name, id
         LIMIT 25
@@ -39,6 +53,7 @@ def test_get_contact_returns_matching_contact() -> None:
         """
         SELECT
           id, first_name, last_name, email, status, can_login,
+          date_of_birth, preferred_name, phonetic_name, pronouns, gender,
           created_at, modified_at
         FROM contacts
         ORDER BY id
