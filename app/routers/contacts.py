@@ -18,6 +18,8 @@ from fastapi import (
     status,
 )
 from models.contacts import (
+    CORE_CONTACT_FIELDS,
+    PERSONAL_DETAIL_FIELDS,
     Contact,
     ContactCreate,
     ContactDetail,
@@ -32,7 +34,10 @@ from database import get_connection
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
-CONTACT_COLUMNS = "id, first_name, last_name, email, status, can_login"
+CONTACT_COLUMNS = (
+    "id, first_name, last_name, email, status, can_login, "
+    "date_of_birth, preferred_name, phonetic_name, pronouns, gender"
+)
 
 
 @router.get("", response_model=ContactPage)
@@ -216,12 +221,24 @@ def update_contact(
     authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> ContactDetail:
-    """Change supplied fields atomically; only email can be explicitly null.
+    """Change supplied fields atomically.
 
-    Archiving revokes existing sessions. Login identities are never edited.
+    Which permission(s) are required depends on which fields the payload
+    sets: contact:update for any of first_name/last_name/email/status,
+    contact-personal:update for any of date_of_birth/preferred_name/
+    phonetic_name/pronouns/gender (documents/api-contract.md "Personal
+    details"). Both may be required in one request; if either fails, the
+    whole request is rejected before anything is looked up or changed.
+    email and the five personal-detail fields can be explicitly null;
+    first_name, last_name, and status cannot. Archiving revokes existing
+    sessions. Login identities are never edited.
     """
     # Deliberately check permission before looking up the target or its email.
-    authorization.require("contact:update", contact_id)
+    fields_present = payload.model_fields_set
+    if fields_present & CORE_CONTACT_FIELDS:
+        authorization.require("contact:update", contact_id)
+    if fields_present & PERSONAL_DETAIL_FIELDS:
+        authorization.require("contact-personal:update", contact_id)
     if if_match is None:
         raise HTTPException(status_code=428, detail="If-Match is required")
     if not re.fullmatch(r'"[!#-~]+"', if_match) or "," in if_match:

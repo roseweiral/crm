@@ -32,6 +32,19 @@ CREATE TYPE identity_provider AS ENUM (
   'microsoft'
 );
 
+CREATE TYPE contact_phone_type AS ENUM (
+  'mobile',
+  'home',
+  'work',
+  'other'
+);
+
+CREATE TYPE contact_address_type AS ENUM (
+  'home',
+  'work',
+  'other'
+);
+
 CREATE TABLE contacts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name varchar NOT NULL,
@@ -40,6 +53,11 @@ CREATE TABLE contacts (
   status contact_status NOT NULL DEFAULT 'active',
   can_login boolean NOT NULL DEFAULT false,
   hidden_from_directory boolean NOT NULL DEFAULT false,
+  date_of_birth date,
+  preferred_name varchar,
+  phonetic_name varchar,
+  pronouns varchar,
+  gender varchar,
   created_at timestamptz NOT NULL DEFAULT now(),
   modified_at timestamptz NOT NULL DEFAULT now()
 );
@@ -225,6 +243,72 @@ CREATE TABLE contact_family_units (
 
 CREATE INDEX idx_contact_family_units_family_unit_id
   ON contact_family_units (family_unit_id);
+
+CREATE TABLE contact_family_main_contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  family_unit_id uuid NOT NULL,
+  contact_id uuid NOT NULL,
+  start_date date NOT NULL DEFAULT current_date,
+  end_date date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  modified_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_contact_family_main_contacts_family_unit
+    FOREIGN KEY (family_unit_id) REFERENCES family_units (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_contact_family_main_contacts_contact
+    FOREIGN KEY (contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_contact_family_main_contacts_dates
+    CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+CREATE UNIQUE INDEX uq_contact_family_main_contacts_current
+  ON contact_family_main_contacts (family_unit_id)
+  WHERE end_date IS NULL;
+
+CREATE TABLE contact_phone_numbers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  phone_type contact_phone_type NOT NULL,
+  number varchar NOT NULL,
+  is_primary boolean NOT NULL DEFAULT false,
+  start_date date NOT NULL DEFAULT current_date,
+  end_date date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  modified_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_contact_phone_numbers_contact
+    FOREIGN KEY (contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_contact_phone_numbers_dates
+    CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+CREATE INDEX idx_contact_phone_numbers_contact_id
+  ON contact_phone_numbers (contact_id);
+
+CREATE UNIQUE INDEX uq_contact_phone_numbers_current_primary
+  ON contact_phone_numbers (contact_id)
+  WHERE is_primary AND end_date IS NULL;
+
+CREATE TABLE contact_addresses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  address_type contact_address_type NOT NULL DEFAULT 'home',
+  line1 varchar NOT NULL,
+  line2 varchar,
+  city varchar,
+  region varchar,
+  postcode varchar,
+  country varchar,
+  start_date date NOT NULL DEFAULT current_date,
+  end_date date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  modified_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_contact_addresses_contact
+    FOREIGN KEY (contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_contact_addresses_dates
+    CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+CREATE INDEX idx_contact_addresses_contact_id
+  ON contact_addresses (contact_id);
 
 CREATE TABLE contact_awards (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

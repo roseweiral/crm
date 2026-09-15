@@ -35,6 +35,14 @@ relationship = "Group Leader"
 scope = "group_descendants"
 
 [[actions."contact:view".rules]]
+# Also: family members of anyone with an active role in the Leader's exact
+# group (not descendants) - necessary so the write extension of the same
+# shape (contact:update) is actually usable via the GET-then-PATCH pattern.
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
+[[actions."contact:view".rules]]
 # Parents can view every contact connected to one of their family units.
 source = "family_relationship"
 relationship = "Parent"
@@ -88,6 +96,17 @@ scope = "all"
 source = "family_relationship"
 relationship = "Parent"
 scope = "family"
+
+[actions."family:manage-main-contact"]
+description = "Change which family member currently holds Main Contact status."
+resource = "family"
+
+[[actions."family:manage-main-contact".rules]]
+# Admin-only for now - see documents/api-contract.md "Main Contact tracking"
+# for why this starts restrictive rather than open to Group Leaders too.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
 
 [actions."group:view"]
 description = "View an organisational group."
@@ -148,6 +167,15 @@ source = "access_role"
 relationship = "Global System Administrator"
 scope = "all"
 
+[[actions."contact:update".rules]]
+# Full field access including archiving, scoped to the Group Leader's own
+# exact group only - not descendants (documents/open-questions.md #4) -
+# extended through contact_family_units to each group member's family too
+# (documents/contact-data-expansion-design.md's write-access model).
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
 [actions."directory:view"]
 description = "Browse the organisation-wide address book of adult volunteers."
 resource = "directory-entry"
@@ -185,3 +213,74 @@ resource = "directory-entry"
 # they currently hold an eligible role.
 source = "self"
 scope = "self"
+
+# --- Contact details (documents/contact-data-expansion-design.md) ----------
+# Deliberately distinct from contact:update, which keeps its own narrower
+# rules (Global System Administrator plus Group-Leader-exact-group). Reading
+# reuses contact:view unchanged - already a superset of what these grant.
+
+[actions."contact-personal:update"]
+description = "Edit a contact's personal-details fields (date_of_birth, preferred_name, phonetic_name, pronouns, gender) via PATCH /contacts/{id}."
+resource = "contact"
+
+[[actions."contact-personal:update".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact-personal:update".rules]]
+source = "self"
+scope = "self"
+
+[[actions."contact-personal:update".rules]]
+source = "main_contact_family"
+scope = "family"
+
+[[actions."contact-personal:update".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
+[actions."contact-phone:update"]
+description = "Add, edit, or end-date a contact's phone numbers."
+resource = "contact"
+
+[[actions."contact-phone:update".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact-phone:update".rules]]
+source = "self"
+scope = "self"
+
+[[actions."contact-phone:update".rules]]
+source = "main_contact_family"
+scope = "family"
+
+[[actions."contact-phone:update".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
+[actions."contact-address:update"]
+description = "Add, edit, or end-date a contact's addresses."
+resource = "contact"
+
+[[actions."contact-address:update".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact-address:update".rules]]
+source = "self"
+scope = "self"
+
+[[actions."contact-address:update".rules]]
+source = "main_contact_family"
+scope = "family"
+
+[[actions."contact-address:update".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"

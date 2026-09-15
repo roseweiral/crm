@@ -24,15 +24,17 @@ VALID_SOURCES = {
     "access_role_flag",
     "group_role",
     "family_relationship",
+    "main_contact_family",
     "self",
 }
-VALID_SCOPES = {"all", "group_descendants", "family", "self"}
+VALID_SCOPES = {"all", "group_descendants", "group", "group_and_family", "family", "self"}
 SOURCE_SCOPES = {
     "authenticated": {"all"},
     "access_role": {"all"},
     "access_role_flag": {"all"},
-    "group_role": {"group_descendants", "all"},
+    "group_role": {"group_descendants", "group", "group_and_family", "all"},
     "family_relationship": {"family"},
+    "main_contact_family": {"family"},
     "self": {"self"},
 }
 # Flags this policy engine knows how to read off access_roles, rather than
@@ -142,7 +144,9 @@ class AuthorizationService:
         self._access_roles: frozenset[str] | None = None
         self._access_role_flags: frozenset[str] | None = None
         self._groups_by_role: dict[str, frozenset[UUID]] | None = None
+        self._exact_groups_by_role: dict[str, frozenset[UUID]] | None = None
         self._families_by_relationship: dict[str, frozenset[UUID]] | None = None
+        self._main_contact_family_ids: frozenset[UUID] | None = None
 
     def scope(self, action: str) -> ResourceScope:
         action_policy = self.policy.actions.get(action)
@@ -168,6 +172,18 @@ class AuthorizationService:
                 if rule.scope == "all":
                     return ResourceScope(unrestricted=True)
             elif rule.source == "group_role":
+                if rule.scope in ("group", "group_and_family"):
+                    # The caller's own assigned group only - no descendant
+                    # walk, unlike group_descendants/all below. See
+                    # documents/api-contract.md "Write authorization and CSRF".
+                    exact_group_ids = self.exact_groups_by_role.get(rule.relationship or "", frozenset())
+                    if rule.scope == "group_and_family":
+                        permitted_ids.update(
+                            self._group_and_family_resource_ids(action_policy.resource, exact_group_ids)
+                        )
+                    else:
+                        permitted_ids.update(self._group_resource_ids(action_policy.resource, exact_group_ids))
+                    continue
                 group_ids = self.groups_by_role.get(rule.relationship or "", frozenset())
                 if rule.scope == "all":
                     if group_ids:
@@ -177,6 +193,8 @@ class AuthorizationService:
             elif rule.source == "family_relationship":
                 family_ids = self.families_by_relationship.get(rule.relationship or "", frozenset())
                 permitted_ids.update(self._family_resource_ids(action_policy.resource, family_ids))
+            elif rule.source == "main_contact_family" and rule.scope == "family":
+                permitted_ids.update(self._family_resource_ids(action_policy.resource, self.main_contact_family_ids))
         return ResourceScope(unrestricted=False, ids=frozenset(permitted_ids))
 
     def allows(self, action: str, resource_id: UUID | None = None) -> bool:
@@ -251,6 +269,29 @@ class AuthorizationService:
         return self._groups_by_role
 
     @property
+    def exact_groups_by_role(self) -> dict[str, frozenset[UUID]]:
+        """Groups the user directly holds each role in - no descendant walk,
+        unlike groups_by_role. Backs the "group" scope (this exact group
+        only), as distinct from "group_descendants"/"all"."""
+        if self._exact_groups_by_role is None:
+            rows = self.connection.execute(
+                """
+                SELECT rt.name AS role_name, assignment.group_id
+                FROM contact_roles_groups assignment
+                JOIN role_types rt ON rt.id = assignment.role_type_id
+                WHERE assignment.contact_id = %s
+                  AND assignment.start_date <= current_date
+                  AND (assignment.end_date IS NULL OR assignment.end_date >= current_date)
+                """,
+                (self.user.contact_id,),
+            ).fetchall()
+            mutable: dict[str, set[UUID]] = {}
+            for row in rows:
+                mutable.setdefault(row["role_name"], set()).add(row["group_id"])
+            self._exact_groups_by_role = {role: frozenset(ids) for role, ids in mutable.items()}
+        return self._exact_groups_by_role
+
+    @property
     def families_by_relationship(self) -> dict[str, frozenset[UUID]]:
         if self._families_by_relationship is None:
             rows = self.connection.execute(
@@ -262,6 +303,22 @@ class AuthorizationService:
                 mutable.setdefault(row["relationship"], set()).add(row["family_unit_id"])
             self._families_by_relationship = {relationship: frozenset(ids) for relationship, ids in mutable.items()}
         return self._families_by_relationship
+
+    @property
+    def main_contact_family_ids(self) -> frozenset[UUID]:
+        """Family units where the caller is the current Main Contact.
+        Backs the main_contact_family source - see
+        documents/contact-data-expansion-design.md's write-access model."""
+        if self._main_contact_family_ids is None:
+            rows = self.connection.execute(
+                """
+                SELECT family_unit_id FROM contact_family_main_contacts
+                WHERE contact_id = %s AND end_date IS NULL
+                """,
+                (self.user.contact_id,),
+            ).fetchall()
+            self._main_contact_family_ids = frozenset(row["family_unit_id"] for row in rows)
+        return self._main_contact_family_ids
 
     def _group_resource_ids(self, resource: str, group_ids: frozenset[UUID]) -> set[UUID]:
         if resource == "group":
@@ -278,6 +335,25 @@ class AuthorizationService:
             ).fetchall()
             return {row["contact_id"] for row in rows}
         return set()
+
+    def _group_and_family_resource_ids(self, resource: str, group_ids: frozenset[UUID]) -> set[UUID]:
+        """Direct group members, extended through contact_family_units to
+        every other member of each group member's family unit(s) - any
+        relationship, not only parent. See documents/api-contract.md "Write
+        authorization and CSRF" for why this exists alongside plain "group"."""
+        direct = self._group_resource_ids(resource, group_ids)
+        if resource != "contact" or not direct:
+            return direct
+        rows = self.connection.execute(
+            """
+            SELECT DISTINCT other.contact_id
+            FROM contact_family_units member_link
+            JOIN contact_family_units other ON other.family_unit_id = member_link.family_unit_id
+            WHERE member_link.contact_id = ANY(%s)
+            """,
+            (list(direct),),
+        ).fetchall()
+        return direct | {row["contact_id"] for row in rows}
 
     def _family_resource_ids(self, resource: str, family_ids: frozenset[UUID]) -> set[UUID]:
         if resource == "family":

@@ -51,7 +51,7 @@ def test_get_family_unit_returns_all_members_and_relationships() -> None:
     assert response.status_code == 200
     assert response.json() == {
         **serialise(family_unit),
-        "members": serialise(members),
+        "members": [{**member, "is_main_contact": False} for member in serialise(members)],
     }
 
 

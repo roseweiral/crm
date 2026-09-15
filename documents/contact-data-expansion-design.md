@@ -20,7 +20,9 @@ profile photo, both explicitly deferred out of v1 in
 `family-and-directory-design.md`. This session adds to, not replaces, that
 backlog.
 
-## Personal details (columns directly on `contacts`)
+## Personal details (columns directly on `contacts`) — delivered
+
+See [`reviews/personal-details-endpoint.md`](reviews/personal-details-endpoint.md).
 
 Single-valued, always-belongs-to-exactly-one-contact fields join the
 existing bare columns rather than getting their own table:
@@ -120,36 +122,137 @@ identity/contact-method data and is likely to grow its own history
 requirements (e.g. a per-channel consent date) sooner than the personal-
 details columns above.
 
+## Write-access model
+
+Agreed for every category in this document (phone numbers, addresses,
+personal details, emergency contact, medical conditions, communications
+preferences) — the same five rules apply uniformly rather than each
+category inventing its own:
+
+1. **Self**: a contact may always write their own record's new fields.
+2. **Main Contact**: the current Main Contact of a family unit may write
+   the record of any contact in that family unit.
+3. **Group Leader**: write access to contacts holding an active role in
+   their *exact* assigned group — not descendant groups, the same
+   restriction already agreed for basic contact writes in
+   `open-questions.md` #4 — **plus** those contacts' family members (so a
+   Group Leader can update a young member's emergency contact or a
+   parent's phone number, not just the young member's own record).
+4. **Area Manager**: no write access to this data at all, despite already
+   having broad *read* access to their whole branch. If an Area Manager
+   separately also holds a Group Leader assignment for a specific group,
+   rule 3 grants them write access there — through that role, not through
+   being an Area Manager.
+5. **Group Helper**: read-only. No rule grants them write access.
+
+Rules 1, 4, and 5 need nothing beyond what the authorization engine already
+supports. Rules 2 and 3 each depend on a piece of infrastructure that
+doesn't exist yet — see below. Per this session's decision, **both are
+built as prerequisite increments before any contact-data-expansion write
+endpoint ships**, rather than shipping a self-service-only version first.
+
+### Prerequisite 1: Main Contact tracking — delivered
+
+Built; see [`reviews/main-contact-tracking.md`](reviews/main-contact-tracking.md)
+and `api-contract.md`'s "Main Contact tracking" section. Prerequisites 2
+and 3 below are still not started.
+
+Designed in `family-and-directory-design.md` ("Main Contact is the sole
+gate to family CRM access... dated and historical, the same way role
+assignments are") but never built — `contact_family_units` today is just
+`contact_id`, `family_unit_id`, `relationship`, with no Main Contact
+concept and no dating at all. A new table, mirroring the dated shape
+`contact_roles_groups` already uses:
+
+**`contact_family_main_contacts`**: `family_unit_id`, `contact_id`,
+`start_date`, `end_date` (nullable). A partial unique index enforces at
+most one current (`end_date IS NULL`) Main Contact per family unit,
+matching the existing "exactly one active Group Leader per group" pattern.
+Kept as its own table rather than a flag on `contact_family_units`, so
+Main Contact history is independently queryable from relationship history
+without conflating two different "start/end" concepts on one row.
+
+### Prerequisite 2: Group-Leader-exact-group write scope — delivered
+
+Built; see [`reviews/group-leader-write-scope.md`](reviews/group-leader-write-scope.md)
+and `api-contract.md`'s "Write authorization and CSRF" section. Prerequisite
+3 below is still not started.
+
+`app/policies/authorization.toml` previously granted `contact:update` (and every
+other write action) to Global System Administrator only — confirmed by
+inspection, not just the contract text. `open-questions.md` #4 already
+flagged an exact-group (not descendant-inclusive) Group Leader write scope
+as a "next step" for *basic* contact writes; it has never been built for
+any resource. This is genuinely reusable beyond contact-data-expansion, so
+it's a prerequisite in its own right: a new policy source (the existing
+`group_role` source only supports `group_descendants`/`all` scopes, not
+"this exact group, no descendants") plus the query change to
+`AuthorizationService` needed to express it.
+
+### Prerequisite 3: group-role-to-family extension — delivered
+
+Built; see [`reviews/group-leader-family-write-extension.md`](reviews/group-leader-family-write-extension.md).
+Applied directly to `contact:update` (and, as a necessary consequence,
+`contact:view`) rather than left unused — see that review for why. All
+three prerequisites are now delivered.
+
+The second half of rule 3 — "and their family members" — is a two-hop
+traversal (caller's Group Leader group → members with an active role there
+→ those members' family units → every other contact in those units) that
+nothing in `AuthorizationService` currently expresses; every existing rule
+answers one relationship hop, not two. Built on top of Prerequisite 2
+rather than replacing it: prerequisite 2 answers "who's in my exact
+group," this extends that set through `contact_family_units`.
+
+## Sensitive-data read access
+
+Medical conditions and emergency contact get a new, separately-grantable
+`contact:view-sensitive` action rather than riding on ordinary
+`contact:view` — so a Group Helper who can see a child's name and roles
+doesn't automatically see their medical notes. Scoped identically to
+`contact:view`'s *existing* read scope per role (Group Leader → assigned
+group and every descendant group; Area Manager → same; Global System
+Administrator → everyone) — this deliberately mirrors `contact:view`'s
+group-plus-descendants read scope, not Prerequisite 2's new exact-group
+*write* scope; read and write scope differ here the same way they already
+will for ordinary contact fields. Being a separate action rather than a
+new rule bolted onto `contact:view` means it can be tightened further
+later (for example, requiring a safeguarding-training flag) without
+touching ordinary contact visibility.
+
 ## Still to confirm before writing any contract
 
-1. **Sensitive-data access control.** Medical conditions (and arguably
-   emergency contact) are more sensitive than a name or role assignment.
-   Should reading them require a *stricter* permission than ordinary
-   `contact:view` — for example, an ordinary Group Helper who can see a
-   child's name and roles should not automatically see their medical
-   notes? This needs resolving before the medical-conditions increment
-   specifically; it doesn't block the personal-details or contact-details
-   categories, which carry no more sensitivity than what's already visible
-   today.
-2. **Communications preferences exact shape** — confirm channels, defaults,
+1. **Communications preferences exact shape** — confirm channels, defaults,
    and whether `consent_recorded_at` needs to be per-channel rather than
    one shared timestamp, before that category's contract is written.
-3. **Write-permission scoping for every new category** — who can edit a
-   contact's phone numbers, addresses, medical log, emergency contacts, and
-   comms preferences (self-service? Main Contact on their family's behalf?
-   Group Leader within their group? System Administrator only?) is a
-   separate decision per category, not addressed by this session, and
-   follows the same "extend the policy matrix before the write endpoint"
-   discipline `authorization-architecture.md` already establishes.
 
 ## Suggested delivery order
 
-Not a commitment, just a reasonable sequence: **contact details** (phone/
-address) first — least sensitive, most broadly useful, and the history
-pattern it establishes is reused by nothing else, so it's a clean, fully
-self-contained first increment. **Personal details** next — trivial schema,
-same low sensitivity. **Emergency contact** next — self-contained, moderate
-sensitivity. **Communications preferences** once its exact shape is
-confirmed. **Medical conditions** last, once the sensitive-data access
-question is resolved — it's the largest schema (three tables) and the one
-increment that can't start until an open question above is answered.
+Per this session's decision, prerequisites land before any
+contact-data-expansion field ships, so the full five-rule write model is
+available from the first category rather than a self-service-only version
+shipping first:
+
+1. **Main Contact tracking** (Prerequisite 1) — delivered. Self-contained schema and
+   read/write endpoints for the concept itself.
+2. **Group-Leader-exact-group write scope** (Prerequisite 2) — delivered. Reusable
+   beyond this feature; also unblocks the basic-contact-write extension
+   `open-questions.md` #4 already anticipated.
+3. **Group-role-to-family extension** (Prerequisite 3) — delivered. Built on top of
+   (2).
+4. **Contact details** (phone/address) — delivered; see
+   [`reviews/contact-details-endpoints.md`](reviews/contact-details-endpoints.md).
+   The first actual new-data category, with the full write model available
+   from day one via two new actions, `contact-phone:update` and
+   `contact-address:update`.
+5. **Personal details** — delivered; see
+   [`reviews/personal-details-endpoint.md`](reviews/personal-details-endpoint.md).
+   Trivial schema (five nullable columns on `contacts`), surfaced through
+   the existing contact endpoints; a new `contact-personal:update` action
+   carries the full write model independently of `contact:update`.
+6. **Emergency contact** — self-contained, moderate sensitivity.
+7. **Communications preferences**, once its exact shape (the remaining
+   open question above) is confirmed.
+8. **Medical conditions** last — the largest schema (three tables), and
+   the category that also introduces the new `contact:view-sensitive`
+   permission.
