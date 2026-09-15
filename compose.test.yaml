@@ -57,6 +57,18 @@ services:
       OIDC_GOOGLE_METADATA_URL: http://fake-oidc:9000/.well-known/openid-configuration
       OIDC_GOOGLE_CLIENT_ID: ${FAKE_OIDC_CLIENT_ID}
       OIDC_GOOGLE_CLIENT_SECRET: ${FAKE_OIDC_CLIENT_SECRET}
+      DOCUMENTS_ROOT: /reference-docs
+    volumes:
+      - ./documents:/reference-docs/documents:ro
+      - ./README.md:/reference-docs/README.md:ro
+      - ./web/README.md:/reference-docs/web/README.md:ro
+      - ./tests/README.md:/reference-docs/tests/README.md:ro
+      - ./tests/fixtures/README.md:/reference-docs/tests/fixtures/README.md:ro
+      - ./infrastructure/terraform/README.md:/reference-docs/infrastructure/terraform/README.md:ro
+      - ./app/README.md:/reference-docs/app/README.md:ro
+      - ./database/demo/README.md:/reference-docs/database/demo/README.md:ro
+      - ./database/migrations/README.md:/reference-docs/database/migrations/README.md:ro
+      - ./database/seed/README.md:/reference-docs/database/seed/README.md:ro
     depends_on:
       demo-loader:
         condition: service_completed_successfully

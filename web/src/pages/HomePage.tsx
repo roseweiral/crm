@@ -21,6 +21,14 @@ export function HomePage() {
         </Link>
       </section>
 
+      <section className="query-panel" aria-labelledby="documentation-heading">
+        <h2 id="documentation-heading">Documentation</h2>
+        <p>Browse the project&apos;s own architecture and process documentation.</p>
+        <Link className="button" to="/documents">
+          Documentation
+        </Link>
+      </section>
+
       <section className="query-panel" aria-labelledby="resources-heading">
         <h2 id="resources-heading">Explore the data</h2>
         <Link className="button secondary" to="/resources">

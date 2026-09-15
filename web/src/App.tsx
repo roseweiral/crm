@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AddressBookPage } from "./pages/AddressBookPage";
 import { AddressBookVisibilityPage } from "./pages/AddressBookVisibilityPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
 import { HomePage } from "./pages/HomePage";
 import { ResourcesPage } from "./pages/ResourcesPage";
 import { authenticationUrl, getMe, signOut, type CurrentUser } from "./services/api";
@@ -73,6 +74,8 @@ export function App() {
         <Route element={<HomePage />} path="/" />
         <Route element={<AddressBookPage />} path="/address-book" />
         <Route element={<AddressBookVisibilityPage />} path="/address-book/visibility" />
+        <Route element={<DocumentsPage />} path="/documents" />
+        <Route element={<DocumentsPage />} path="/documents/:id" />
         <Route element={<ResourcesPage />} path="/resources" />
         <Route element={<Navigate replace to="/" />} path="*" />
       </Routes>
