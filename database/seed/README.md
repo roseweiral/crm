@@ -21,12 +21,16 @@ Load the files in this dependency order:
 10. `groups.csv`
 11. `contact_roles_groups.csv`
 12. `contact_family_units.csv`
-13. `contact_awards.csv`
-14. `permissions.csv`
-15. `access_roles.csv`
-16. `access_role_permissions.csv`
-17. `user_access_role_assignments.csv`
-18. `audit_events.csv`
+13. `contact_family_main_contacts.csv`
+14. `contact_phone_numbers.csv`
+15. `contact_addresses.csv`
+16. `contact_emergency_contacts.csv`
+17. `contact_awards.csv`
+18. `permissions.csv`
+19. `access_roles.csv`
+20. `access_role_permissions.csv`
+21. `user_access_role_assignments.csv`
+22. `audit_events.csv`
 
 The first contact has an explicit active user account and is reserved as the seeded
 Global System Administrator. Its access is represented by an explicit access-role

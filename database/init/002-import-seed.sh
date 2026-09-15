@@ -7,7 +7,7 @@ if [ "${APP_ENV}" = "development" ] || [ "${APP_ENV}" = "test" ]; then
   psql --username "${POSTGRES_USER}" --dbname "${POSTGRES_DB}" --set ON_ERROR_STOP=1 <<'SQL'
 BEGIN;
 
-\copy contacts (id, first_name, last_name, email, status, can_login) FROM '/seed/contacts.csv' WITH (FORMAT csv, HEADER true)
+\copy contacts (id, first_name, last_name, email, status, can_login, date_of_birth, preferred_name, phonetic_name, pronouns, gender) FROM '/seed/contacts.csv' WITH (FORMAT csv, HEADER true)
 \copy user_accounts (id, contact_id, status) FROM '/seed/user_accounts.csv' WITH (FORMAT csv, HEADER true)
 \copy user_identities (id, user_account_id, provider, issuer, subject, email, email_verified, last_signed_in_at) FROM '/seed/user_identities.csv' WITH (FORMAT csv, HEADER true)
 \copy invitations (id, user_account_id, invited_by_user_account_id, email, token_hash, expires_at, accepted_at, revoked_at) FROM '/seed/invitations.csv' WITH (FORMAT csv, HEADER true)
@@ -19,6 +19,10 @@ BEGIN;
 \copy groups (id, group_type_id, name, description, parent_id) FROM '/seed/groups.csv' WITH (FORMAT csv, HEADER true)
 \copy contact_roles_groups (id, contact_id, role_type_id, group_id, start_date, end_date) FROM '/seed/contact_roles_groups.csv' WITH (FORMAT csv, HEADER true)
 \copy contact_family_units (id, contact_id, family_unit_id, relationship) FROM '/seed/contact_family_units.csv' WITH (FORMAT csv, HEADER true)
+\copy contact_family_main_contacts (id, family_unit_id, contact_id, start_date, end_date) FROM '/seed/contact_family_main_contacts.csv' WITH (FORMAT csv, HEADER true)
+\copy contact_phone_numbers (id, contact_id, phone_type, number, is_primary, start_date, end_date) FROM '/seed/contact_phone_numbers.csv' WITH (FORMAT csv, HEADER true)
+\copy contact_addresses (id, contact_id, address_type, line1, line2, city, region, postcode, country, start_date, end_date) FROM '/seed/contact_addresses.csv' WITH (FORMAT csv, HEADER true)
+\copy contact_emergency_contacts (id, contact_id, emergency_contact_id, priority, relationship) FROM '/seed/contact_emergency_contacts.csv' WITH (FORMAT csv, HEADER true)
 \copy contact_awards (id, contact_id, award_type_id, status, nomination_date, presented_date, notes) FROM '/seed/contact_awards.csv' WITH (FORMAT csv, HEADER true)
 \copy permissions (id, name, description) FROM '/seed/permissions.csv' WITH (FORMAT csv, HEADER true)
 \copy access_roles (id, name, description, is_global) FROM '/seed/access_roles.csv' WITH (FORMAT csv, HEADER true)
