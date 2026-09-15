@@ -28,6 +28,8 @@ screen behavior this document doesn't describe yet.
 | `/` | Home | No (shows sign-in when signed out) |
 | `/address-book` | Address Book | Yes |
 | `/address-book/visibility` | My directory visibility | Yes |
+| `/documents` | Documentation browser (no document selected) | Yes |
+| `/documents/:id` | Documentation browser (one document open) | Yes |
 | `/resources` | Generic API browser (unchanged) | Yes |
 
 Every route sits behind the existing app-level session gate: `App.tsx`
@@ -52,6 +54,11 @@ CRM"). Two changes to the signed-in view:
   a single secondary link labelled `Open the API browser` to `/resources`.
   Nothing about the grid or the resource viewer behind it changes — it only
   moves behind that link instead of being inline on Home.
+- A third panel, **Documentation**: one line of copy ("Browse the project's
+  own architecture and process documentation.") and a link labelled
+  `Documentation` to `/documents`. Shown unconditionally, same reasoning as
+  Address Book above — there's no eligibility dimension to this one at all,
+  every signed-in contact can read every document.
 
 ## Address Book (`/address-book`)
 
@@ -127,6 +134,62 @@ application/json`, browser-supplied `Origin`). On success, replace the held
 ETag with the response's and show a brief confirmation.
 
 **Navigation**: a `Back to Address Book` link to `/address-book`.
+
+## Documentation (`/documents`, `/documents/:id`)
+
+One screen, two states depending on whether `:id` is present in the URL.
+Both share the same sidebar.
+
+**Data**: `GET /api/v1/documents` once, on mount, to build the sidebar —
+the list is small and fixed, unlike the address book, so there's no
+per-page fetching here. `GET /api/v1/documents/:id` whenever `:id` changes.
+
+**Sidebar**: every item from the list response, grouped under its
+`category` in the exact order the API returns (already sorted
+category-then-title server-side — no client sort needed), each linking to
+`/documents/{id}`. The currently-open document's entry is visually marked
+current (`aria-current="page"`).
+
+**States**:
+
+| State | Trigger | UI |
+| --- | --- | --- |
+| Sidebar loading | list request in flight | `<p role="status">Loading documentation…</p>` in place of the sidebar |
+| Sidebar error | failed list request | Existing `.error`/`role="alert"` pattern |
+| No document selected | `/documents`, no `:id` | Sidebar only, plus "Select a document to read it." in the content pane |
+| Document loading | detail request in flight | `<p role="status">Loading…</p>` in the content pane |
+| Not found | `404` from the detail request | A distinct, calm message in the content pane — "This document doesn't exist." — not the generic error box, same reasoning as `AddressBookPage`'s permission-denied state: a bad or stale link is an expected outcome here, not a fault |
+| Document error | any other failed detail request | Existing `.error`/`role="alert"` pattern |
+| Loaded | `200` from the detail request | The document's `title` as a heading, then `content` rendered as markdown |
+
+**Rendering**: the page's single, already-dynamic `<h1>` (see States above —
+it reads "Documentation" or the open document's title depending on what's
+loaded, the same one-heading-that-changes pattern `ResourcePage` already
+uses rather than a second, separate title element) serves as the document's
+title; it is never duplicated inside the content pane. `content` (raw
+markdown) renders below it via `react-markdown` (+ `remark-gfm`, since
+several documents use tables) — never `dangerouslySetInnerHTML` — with
+every markdown heading level shifted down by one (`h1`→`h2`, `h2`→`h3`, ...,
+`h6` stays `h6`), so the page keeps exactly one `<h1>` and the document's
+own heading hierarchy nests under it instead of producing a second,
+competing top-level heading.
+
+**In-app cross-links**: the documents heavily link to each other (for
+example `way-of-working.md` links to `open-questions.md` and
+`reviews/address-book.md`). Every list item carries its own `path`
+alongside `id`/`title`/`category` for exactly this — the list response is
+fetched once and kept as a `path → id` lookup map for the lifetime of the
+screen. A rendered link's `href`, resolved relative to the *currently open
+document's own* `path` (from the detail response) into a repo-relative
+path, is looked up in that map: a match renders as an in-app `<Link>` to
+`/documents/{that id}` instead of a plain anchor. Anything that doesn't
+resolve to a known document (external URLs, `documents/database/db.dbml`,
+images) renders as a normal `<a target="_blank" rel="noreferrer">`. This
+resolution is one small, pure, exported function — not inlined into the
+render path — because it's the one genuinely tricky piece of logic in this
+screen.
+
+**Navigation**: a `Home` link, always visible.
 
 ## Build, test, and run
 

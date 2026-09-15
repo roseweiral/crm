@@ -1,4 +1,5 @@
 import type { AddressBookEntry, DirectoryVisibility, DirectoryVisibilityPatch } from "../features/addressBook";
+import type { DocumentDetail, DocumentList } from "../features/documents";
 
 export type ApiRecord = Record<string, unknown> & { id: string };
 
@@ -151,4 +152,12 @@ export function updateDirectoryVisibility(
   signal?: AbortSignal,
 ): Promise<{ data: DirectoryVisibility; etag: string }> {
   return patchJson<DirectoryVisibility>("/api/v1/address-book/visibility", patch, ifMatch, signal);
+}
+
+export function getDocuments(signal?: AbortSignal): Promise<DocumentList> {
+  return request<DocumentList>("/api/v1/documents", signal);
+}
+
+export function getDocument(id: string, signal?: AbortSignal): Promise<DocumentDetail> {
+  return request<DocumentDetail>(`/api/v1/documents/${encodeURIComponent(id)}`, signal);
 }

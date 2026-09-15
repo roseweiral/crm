@@ -309,6 +309,80 @@ Two new actions in `app/policies/authorization.toml`:
 - The Young Member role type and any role or group write increment —
   unrelated and not a dependency.
 
+## Documentation browser
+
+Read-only access to the project's own markdown documentation from inside
+the signed-in application, so it doesn't only exist as files in the repo.
+Available to any authenticated contact — this is process/architecture
+documentation, not CRM data, so it carries no further authorization scope
+beyond having a valid session (the same "just needs to be signed in" shape
+`GET /api/v1/me` already uses).
+
+The servable set is a fixed, hardcoded manifest — id, repo-relative path,
+title, category — not a directory scan. A request for an `id` outside that
+manifest is a 404; the value is never used to build a filesystem path. This
+is a deliberate security property, not an incidental implementation detail:
+it removes path traversal as a possible bug class for this feature rather
+than needing to be defended against per request.
+
+### Listing
+
+`GET /api/v1/documents`
+
+Returns every manifest entry, ordered by category then title:
+
+```json
+{
+  "items": [
+    {"id": "way-of-working", "title": "Way of working", "category": "Architecture and process", "path": "documents/way-of-working.md"},
+    "..."
+  ]
+}
+```
+
+No pagination — the manifest is small and fixed. 401 for no session.
+`path` is included on every item, not only on the detail response: the
+frontend needs every document's path up front (not just the currently open
+one) to resolve a markdown link found in one document's content into
+another manifest entry — see the "Detail" section's note on `path` below.
+
+Categories mirror this repository's own [documentation
+index](../README.md#documentation-index): `Overview`, `Architecture and
+process`, `Authentication and authorization`, `API and testing`, `Data`,
+`Deployment`.
+
+### Detail
+
+`GET /api/v1/documents/{id}`
+
+```json
+{
+  "id": "way-of-working",
+  "title": "Way of working",
+  "category": "Architecture and process",
+  "path": "documents/way-of-working.md",
+  "content": "# Way of working: feature increments\n\n..."
+}
+```
+
+`content` is the raw markdown text, unrendered — rendering happens in the
+frontend. `path` is this document's own repo-relative path: resolving a
+relative markdown link inside `content` (for example `way-of-working.md`
+linking to `open-questions.md`) starts from *this* path, and is checked
+against every other document's `path` from the list response to decide
+whether it becomes an in-app link.
+
+A malformed or unknown `id` returns 404 with `{"detail": "Document not
+found"}`. 401 for no session.
+
+### Not in this increment
+
+- Search across document content.
+- Any document outside the fixed manifest (in particular
+  `documents/database/db.dbml`, which isn't markdown prose).
+- Editing documentation from the app — this is a read-only mirror of what's
+  already in the repo.
+
 ## Following increments (design pending)
 
 1. Family creation and membership add/change/remove; delete only empty families.

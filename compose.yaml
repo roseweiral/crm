@@ -34,11 +34,22 @@ services:
       OIDC_MICROSOFT_METADATA_URL: ${OIDC_MICROSOFT_METADATA_URL}
       OIDC_MICROSOFT_CLIENT_ID: ${OIDC_MICROSOFT_CLIENT_ID}
       OIDC_MICROSOFT_CLIENT_SECRET: ${OIDC_MICROSOFT_CLIENT_SECRET}
+      DOCUMENTS_ROOT: /reference-docs
     ports:
       - "${APP_PORT}:8000"
     volumes:
       - ./app:/app
       - ./database:/database
+      - ./documents:/reference-docs/documents:ro
+      - ./README.md:/reference-docs/README.md:ro
+      - ./web/README.md:/reference-docs/web/README.md:ro
+      - ./tests/README.md:/reference-docs/tests/README.md:ro
+      - ./tests/fixtures/README.md:/reference-docs/tests/fixtures/README.md:ro
+      - ./infrastructure/terraform/README.md:/reference-docs/infrastructure/terraform/README.md:ro
+      - ./app/README.md:/reference-docs/app/README.md:ro
+      - ./database/demo/README.md:/reference-docs/database/demo/README.md:ro
+      - ./database/migrations/README.md:/reference-docs/database/migrations/README.md:ro
+      - ./database/seed/README.md:/reference-docs/database/seed/README.md:ro
     depends_on:
       database:
         condition: service_healthy
@@ -105,10 +116,21 @@ services:
       API_URL: http://app:8000
       TEST_CATEGORIES: ${API_TEST_CATEGORIES:-smoke,contract,regression}
       PYTEST_ARGS: ${PYTEST_ARGS:-}
+      DOCUMENTS_ROOT: /reference-docs
     volumes:
       - ./tests/api:/workspace/tests/api
       - ./app:/workspace/app:ro
       - ./database:/database:ro
+      - ./documents:/reference-docs/documents:ro
+      - ./README.md:/reference-docs/README.md:ro
+      - ./web/README.md:/reference-docs/web/README.md:ro
+      - ./tests/README.md:/reference-docs/tests/README.md:ro
+      - ./tests/fixtures/README.md:/reference-docs/tests/fixtures/README.md:ro
+      - ./infrastructure/terraform/README.md:/reference-docs/infrastructure/terraform/README.md:ro
+      - ./app/README.md:/reference-docs/app/README.md:ro
+      - ./database/demo/README.md:/reference-docs/database/demo/README.md:ro
+      - ./database/migrations/README.md:/reference-docs/database/migrations/README.md:ro
+      - ./database/seed/README.md:/reference-docs/database/seed/README.md:ro
     depends_on:
       database:
         condition: service_healthy

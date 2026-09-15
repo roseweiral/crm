@@ -35,6 +35,8 @@ the relevant one instead of reading the whole tree.
 | [Contact-writes review](documents/reviews/contact-writes.md) | TDD evidence and follow-up findings from the first write increment |
 | [Address-book review](documents/reviews/address-book.md) | TDD evidence and follow-up findings from the organisation-wide address book increment |
 | [Address-book frontend review](documents/reviews/address-book-frontend.md) | TDD evidence, the same-site cookie fix, and follow-up findings from the address book's frontend increment |
+| [Documentation browser review](documents/reviews/documents-endpoint.md) | TDD evidence and follow-up findings from the in-app documentation browser's API increment |
+| [Documentation browser frontend review](documents/reviews/documents-frontend.md) | TDD evidence and follow-up findings from the documentation browser's frontend increment |
 | [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
 | [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
 | [App README](app/README.md) | FastAPI application entry points |
