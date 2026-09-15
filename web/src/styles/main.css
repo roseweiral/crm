@@ -112,27 +112,32 @@ h2 {
   font-weight: 700;
 }
 
-button {
+button,
+.button {
   border: 3px solid #132018;
   border-radius: 0;
   background: #f4c95d;
   box-shadow: 4px 4px 0 #132018;
   color: #132018;
   cursor: pointer;
+  display: inline-block;
   font: inherit;
   font-weight: 700;
   padding: 0.85rem 1rem;
   text-align: left;
+  text-decoration: none;
   text-transform: uppercase;
 }
 
-button:hover {
+button:hover,
+.button:hover {
   background: #f7efe0;
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 #132018;
 }
 
-button:focus-visible {
+button:focus-visible,
+.button:focus-visible {
   outline: 4px solid #9c351f;
   outline-offset: 3px;
 }
@@ -143,7 +148,8 @@ button:disabled {
   opacity: 0.55;
 }
 
-button.secondary {
+button.secondary,
+.button.secondary {
   background: #edf1e8;
 }
 
@@ -313,7 +319,78 @@ dd {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  button {
+  button,
+  .button {
     transition: background-color 100ms linear, box-shadow 100ms linear, transform 100ms linear;
   }
+}
+
+.filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+}
+
+.filter-row label {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.filter-row select {
+  border: 3px solid #132018;
+  background: #f7efe0;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+}
+
+.permission-notice {
+  border: 3px solid #173f3a;
+  background: #edf1e8;
+  box-shadow: 5px 5px 0 #173f3a;
+  color: #173f3a;
+  font-weight: 700;
+  padding: 1rem;
+}
+
+.address-book-entry {
+  display: grid;
+  gap: 0.35rem;
+  border: 3px solid #132018;
+  background: #edf1e8;
+  box-shadow: 4px 4px 0 #132018;
+  padding: 0.85rem 1rem;
+}
+
+.address-book-entry .email {
+  color: #4d5d52;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.role-list,
+.visibility-role-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.visibility-role-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.visibility-toggle {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.visibility-toggle input {
+  height: 1.1rem;
+  width: 1.1rem;
 }

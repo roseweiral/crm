@@ -52,10 +52,10 @@ def viewer(records, person, session_token):
     return session_token(account["id"])
 
 
-def visible_contact_ids(token):
+def visible_contact_ids(token, **params):
     response = httpx.get(
         f"{API_URL}/api/v1/address-book",
-        params={"page_size": 100},
+        params={"page_size": 100, **params},
         cookies={"crm_session": token},
         timeout=5,
     )
@@ -234,3 +234,84 @@ def test_eligible_adults_see_each_other_across_unrelated_branches(records, perso
 
     # ...but the address book, built for exactly this case, connects them.
     assert str(other["id"]) in visible_contact_ids(viewer_token)
+
+
+# --- group_id filter -----------------------------------------------------
+
+
+def test_group_id_filter_includes_the_named_group_and_excludes_others(
+    records, person, group, viewer
+):
+    contact, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=contact["id"],
+        role_type_id=role_type_id("Group Leader"),
+        group_id=group["id"],
+        start_date=date.today(),
+    )
+    other_type = records("group_types", name=f"Filter control type {uuid4()}")
+    other_group = records("groups", group_type_id=other_type["id"], name=f"Filter control {uuid4()}")
+    outside, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=outside["id"],
+        role_type_id=role_type_id("Group Leader"),
+        group_id=other_group["id"],
+        start_date=date.today(),
+    )
+    visible = visible_contact_ids(viewer, group_id=group["id"])
+    assert str(contact["id"]) in visible
+    assert str(outside["id"]) not in visible
+
+
+def test_group_id_filter_includes_descendant_groups_and_excludes_others(
+    records, person, viewer
+):
+    hierarchy_type = records("group_types", name=f"Address book filter type {uuid4()}")
+    root = records("groups", group_type_id=hierarchy_type["id"], name=f"Root {uuid4()}")
+    child = records(
+        "groups",
+        group_type_id=hierarchy_type["id"],
+        name=f"Child {uuid4()}",
+        parent_id=root["id"],
+    )
+    sibling_type = records("group_types", name=f"Filter sibling type {uuid4()}")
+    sibling_root = records("groups", group_type_id=sibling_type["id"], name=f"Sibling root {uuid4()}")
+
+    contact, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=contact["id"],
+        role_type_id=role_type_id("Group Leader"),
+        group_id=child["id"],
+        start_date=date.today(),
+    )
+    outside, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=outside["id"],
+        role_type_id=role_type_id("Group Leader"),
+        group_id=sibling_root["id"],
+        start_date=date.today(),
+    )
+    visible = visible_contact_ids(viewer, group_id=root["id"])
+    assert str(contact["id"]) in visible
+    assert str(outside["id"]) not in visible
+
+
+def test_group_id_filter_excludes_an_unrelated_branch(records, person, viewer):
+    branch_a_type = records("group_types", name=f"Filter branch A type {uuid4()}")
+    branch_a = records("groups", group_type_id=branch_a_type["id"], name=f"Filter branch A {uuid4()}")
+    branch_b_type = records("group_types", name=f"Filter branch B type {uuid4()}")
+    branch_b = records("groups", group_type_id=branch_b_type["id"], name=f"Filter branch B {uuid4()}")
+
+    other, _ = person()
+    records(
+        "contact_roles_groups",
+        contact_id=other["id"],
+        role_type_id=role_type_id("Area Manager"),
+        group_id=branch_b["id"],
+        start_date=date.today(),
+    )
+    assert str(other["id"]) not in visible_contact_ids(viewer, group_id=branch_a["id"])

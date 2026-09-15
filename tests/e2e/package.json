@@ -8,6 +8,8 @@
     "report": "playwright show-report playwright-report --host 0.0.0.0 --port 9323"
   },
   "devDependencies": {
-    "@playwright/test": "1.55.0"
+    "@playwright/test": "1.55.0",
+    "@types/pg": "8.15.5",
+    "pg": "8.16.3"
   }
 }

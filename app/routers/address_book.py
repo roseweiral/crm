@@ -42,24 +42,47 @@ router = APIRouter(prefix="/address-book", tags=["address book"])
 ELIGIBLE_GROUP_ROLE_TYPES = ("Group Leader", "Group Helper", "Area Manager")
 
 DIRECTORY_CANDIDATES_CTE = """
-WITH directory_group_roles AS (
+WITH RECURSIVE group_id_filter AS (
+    -- A single row holding the optional group_id filter, so the rest of this
+    -- CTE can test "no filter active" with a plain NULL check instead of
+    -- branching the SQL text in Python for the filtered/unfiltered cases.
+    SELECT %s::uuid AS group_id
+),
+descendant_groups AS (
+    SELECT g.id
+    FROM groups g, group_id_filter f
+    WHERE g.id = f.group_id
+    UNION ALL
+    SELECT child.id
+    FROM groups child
+    JOIN descendant_groups dg ON child.parent_id = dg.id
+),
+directory_group_roles AS (
     SELECT DISTINCT crg.contact_id
     FROM contact_roles_groups crg
     JOIN role_types rt ON rt.id = crg.role_type_id
+    CROSS JOIN group_id_filter f
     WHERE rt.name = ANY(%s)
       AND crg.hidden_from_directory = false
       AND crg.start_date <= current_date
       AND (crg.end_date IS NULL OR crg.end_date >= current_date)
+      AND (f.group_id IS NULL OR crg.group_id IN (SELECT id FROM descendant_groups))
 ),
 directory_access_roles AS (
+    -- An is_global access role assignment has no group of its own, so it can
+    -- never match a group_id filter (see documents/api-contract.md
+    -- "Directory access"): only contribute these candidates when no filter
+    -- is active.
     SELECT DISTINCT ua.contact_id
     FROM user_access_role_assignments uara
     JOIN user_accounts ua ON ua.id = uara.user_account_id
     JOIN access_roles ar ON ar.id = uara.access_role_id
+    CROSS JOIN group_id_filter f
     WHERE ar.is_global = true
       AND uara.hidden_from_directory = false
       AND uara.start_date <= current_date
       AND (uara.end_date IS NULL OR uara.end_date >= current_date)
+      AND f.group_id IS NULL
 ),
 directory_candidates AS (
     SELECT contact_id FROM directory_group_roles
@@ -164,6 +187,10 @@ def _entry(row: dict[str, Any], roles: list[dict[str, Any]]) -> AddressBookEntry
 def get_address_book(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
+    group_id: UUID | None = Query(
+        default=None,
+        description="Restrict results to this group or any of its descendants.",
+    ),
     authorization: AuthorizationService = Depends(get_authorization_service),
     connection: Connection[Any] = Depends(get_connection),
 ) -> AddressBookPage:
@@ -180,7 +207,7 @@ def get_address_book(
         ORDER BY c.last_name, c.first_name, c.id
         LIMIT %s OFFSET %s
         """,
-        (list(ELIGIBLE_GROUP_ROLE_TYPES), page_size, offset),
+        (group_id, list(ELIGIBLE_GROUP_ROLE_TYPES), page_size, offset),
     ).fetchall()
     total = rows[0]["total"] if rows else 0
     roles_by_contact = _load_directory_roles(connection, [row["id"] for row in rows])
@@ -417,7 +444,7 @@ def get_address_book_entry(
         JOIN directory_candidates dc ON dc.contact_id = c.id
         WHERE c.status = 'active' AND c.hidden_from_directory = false AND c.id = %s
         """,
-        (list(ELIGIBLE_GROUP_ROLE_TYPES), contact_id),
+        (None, list(ELIGIBLE_GROUP_ROLE_TYPES), contact_id),
     ).fetchone()
     if row is None:
         raise HTTPException(

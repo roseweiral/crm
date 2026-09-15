@@ -144,6 +144,29 @@ def test_address_book_rejects_invalid_pagination(eligible_viewer, parameters):
     assert response.status_code == 422
 
 
+def test_address_book_group_id_filter_rejects_malformed_uuid(eligible_viewer):
+    response = httpx.get(
+        f"{API_URL}/api/v1/address-book",
+        params={"group_id": "not-a-uuid"},
+        cookies={"crm_session": eligible_viewer},
+        timeout=5,
+    )
+    assert response.status_code == 422
+
+
+def test_address_book_group_id_filter_with_unknown_group_returns_empty_page(eligible_viewer):
+    response = httpx.get(
+        f"{API_URL}/api/v1/address-book",
+        params={"group_id": str(uuid4())},
+        cookies={"crm_session": eligible_viewer},
+        timeout=5,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"] == []
+    assert body["total"] == 0
+
+
 def test_address_book_entry_shows_name_contact_and_group_role(
     records, person, session_token, group
 ):

@@ -80,6 +80,49 @@ coverage: `tests/api/test_address_book_endpoints.py` (contract) and
    Not a correctness issue at current data sizes; revisit alongside the
    existing scalability follow-up.
 
+## Addendum: `group_id` filter (2026-09-15)
+
+Small follow-on increment, run through the same Phase 1 cycle
+([`way-of-working.md`](../way-of-working.md)), adding org-structure
+filtering to `GET /api/v1/address-book` ahead of the frontend work that
+needs it — the contract deliberately excluded any filtering when the
+endpoint first shipped.
+
+- **Contract**: `documents/api-contract.md` "Directory access" now documents
+  an optional `group_id` query parameter, descendant-inclusive, malformed
+  UUID → 422, no-match or empty-branch → `200` with an empty page (not
+  404 — this is a collection filter, not a detail lookup).
+- **TDD evidence**: six new cases across
+  `tests/api/test_address_book_endpoints.py` (malformed UUID, unknown
+  group) and `tests/api/test_address_book_scope.py` (named group plus a
+  control contact outside it, descendant groups plus a sibling-branch
+  control, an unrelated branch excluded). All six confirmed red — the
+  parameter was accepted but silently ignored — before implementation.
+  The first two scope cases initially asserted inclusion only, which
+  passed against the unfiltered endpoint without proving anything; they
+  were strengthened to also assert a control contact's exclusion before
+  being trusted as a red baseline.
+- **Implementation**: `app/routers/address_book.py`'s `DIRECTORY_CANDIDATES_CTE`
+  gained a `group_id_filter` / `descendant_groups` pair (the same
+  recursive-descendant shape as `AuthorizationService.groups_by_role` in
+  `app/authorization.py`, walking down from one supplied group instead of a
+  user's own assignments) and now only contributes `directory_group_roles`
+  candidates within that set when a filter is active. An `is_global` access
+  role assignment has no group of its own, so it never matches an active
+  `group_id` filter — documented explicitly in the contract rather than left
+  as an implicit consequence. `get_address_book_entry` passes a constant
+  `NULL` filter so its behavior is unchanged.
+- **Result**: 215 tests pass (up from 210), both on a fresh database and on
+  a repeat without a reset. No schema change, no new authorization action —
+  `directory:view`'s eligibility gate is unchanged; the filter only narrows
+  what an already-eligible viewer sees, consistent with the address book
+  being intentionally org-wide rather than branch-scoped.
+- **Follow-up carried forward, not new**: the recursive CTE now runs on
+  every address-book request, filtered or not (it's a no-op when
+  unfiltered, since the seed row's `group_id` is `NULL`). Covered by the
+  existing "Collection scalability" follow-up above — revisit at the same
+  time.
+
 ## Deployment and operational limits
 
 No migration is required — this task applied the new columns only to a

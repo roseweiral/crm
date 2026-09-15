@@ -163,6 +163,19 @@ Paginated the same way as every other collection (`items`, `page`,
 `page_size`, `total`; default `page_size=25`, maximum 100; invalid pagination
 returns 422). Ordered by `last_name, first_name, id`.
 
+Accepts an optional `group_id` query parameter to filter results by
+organisation structure. When present, only directory entries whose
+directory-eligible role or assignment (see Eligibility) is attached to that
+group, or to any descendant of it, are returned — the same
+descendant-inclusive semantics used everywhere else in the hierarchy. A
+malformed `group_id` returns 422. A `group_id` that doesn't match any group,
+or that matches a real group with no eligible people under it, returns 200
+with an empty `items` array and `total: 0` — this is a collection filter, not
+a detail lookup, and an empty result is an ordinary outcome, not an error.
+Omitting `group_id` returns the whole directory, unchanged from before.
+Pagination applies to the filtered set; changing the filter is expected to
+reset the caller to page 1, which is a client concern, not an API one.
+
 Requires the caller to hold at least one currently active role or assignment
 of the kinds listed under Eligibility — the address book is a directory *for*
 volunteers, not a listing every signed-in contact can browse. An
@@ -289,7 +302,8 @@ Two new actions in `app/policies/authorization.toml`:
 
 - Skills and photo fields (explicit future vision — see
   `family-and-directory-design.md`).
-- Search or filtering beyond plain pagination.
+- Free-text or name search, and any filter beyond `group_id` and plain
+  pagination.
 - An administrator managing another contact's visibility settings on their
   behalf; only self-service is built now.
 - The Young Member role type and any role or group write increment —
