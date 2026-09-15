@@ -310,6 +310,26 @@ CREATE TABLE contact_addresses (
 CREATE INDEX idx_contact_addresses_contact_id
   ON contact_addresses (contact_id);
 
+CREATE TABLE contact_emergency_contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id uuid NOT NULL,
+  emergency_contact_id uuid NOT NULL,
+  priority integer NOT NULL,
+  relationship varchar NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  modified_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_contact_emergency_contacts_contact
+    FOREIGN KEY (contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_contact_emergency_contacts_emergency_contact
+    FOREIGN KEY (emergency_contact_id) REFERENCES contacts (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_contact_emergency_contacts_not_self
+    CHECK (contact_id <> emergency_contact_id),
+  CONSTRAINT uq_contact_emergency_contacts_priority
+    UNIQUE (contact_id, priority),
+  CONSTRAINT uq_contact_emergency_contacts_person
+    UNIQUE (contact_id, emergency_contact_id)
+);
+
 CREATE TABLE contact_awards (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   contact_id uuid NOT NULL,

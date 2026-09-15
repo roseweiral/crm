@@ -53,6 +53,43 @@ scope = "family"
 source = "self"
 scope = "self"
 
+[actions."contact:view-sensitive"]
+description = "View a contact's sensitive data (emergency contacts, medical conditions) - separate from ordinary contact:view so, e.g., a Group Helper who can see a child's name doesn't automatically see this."
+resource = "contact"
+
+[[actions."contact:view-sensitive".rules]]
+# Deliberately mirrors contact:view's entire rule set exactly (documents/
+# contact-data-expansion-design.md "Sensitive-data read access") - kept as
+# its own action so it can be tightened independently later without
+# touching ordinary contact visibility.
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact:view-sensitive".rules]]
+source = "group_role"
+relationship = "Area Manager"
+scope = "group_descendants"
+
+[[actions."contact:view-sensitive".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_descendants"
+
+[[actions."contact:view-sensitive".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
+[[actions."contact:view-sensitive".rules]]
+source = "family_relationship"
+relationship = "Parent"
+scope = "family"
+
+[[actions."contact:view-sensitive".rules]]
+source = "self"
+scope = "self"
+
 [actions."contact-role:view"]
 description = "View a person's organisational role and group assignments."
 resource = "contact"
@@ -237,6 +274,28 @@ source = "main_contact_family"
 scope = "family"
 
 [[actions."contact-personal:update".rules]]
+source = "group_role"
+relationship = "Group Leader"
+scope = "group_and_family"
+
+[actions."contact-emergency-contact:update"]
+description = "Add, edit, or delete a contact's emergency contacts."
+resource = "contact"
+
+[[actions."contact-emergency-contact:update".rules]]
+source = "access_role"
+relationship = "Global System Administrator"
+scope = "all"
+
+[[actions."contact-emergency-contact:update".rules]]
+source = "self"
+scope = "self"
+
+[[actions."contact-emergency-contact:update".rules]]
+source = "main_contact_family"
+scope = "family"
+
+[[actions."contact-emergency-contact:update".rules]]
 source = "group_role"
 relationship = "Group Leader"
 scope = "group_and_family"

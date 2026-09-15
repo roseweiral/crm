@@ -234,6 +234,23 @@ Table contact_addresses {
   modified_at timestamptz [not null, default: `now()`]
 }
 
+Table contact_emergency_contacts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  contact_id uuid [not null, note: 'Whose emergency contact this is.']
+  emergency_contact_id uuid [not null, note: 'Who to contact - always a CRM contact, never free text.']
+  priority integer [not null, note: '1 = primary, 2 = secondary, ...']
+  relationship varchar [not null, note: 'Free text - not every emergency contact is an existing family relationship.']
+  created_at timestamptz [not null, default: `now()`]
+  modified_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (contact_id, priority) [unique]
+    (contact_id, emergency_contact_id) [unique]
+  }
+
+  Note: 'CHECK constraint: contact_id <> emergency_contact_id. Not dated/historical unlike contact_phone_numbers/contact_addresses - removal is a hard DELETE, the one exception to this schema''s no-hard-deletion convention.'
+}
+
 Table contact_awards {
   id uuid [pk, default: `gen_random_uuid()`]
   contact_id uuid [not null]
@@ -312,6 +329,8 @@ Ref: contact_family_main_contacts.contact_id > contacts.id
 Ref: contact_family_main_contacts.family_unit_id > family_units.id
 Ref: contact_phone_numbers.contact_id > contacts.id
 Ref: contact_addresses.contact_id > contacts.id
+Ref: contact_emergency_contacts.contact_id > contacts.id
+Ref: contact_emergency_contacts.emergency_contact_id > contacts.id
 Ref: contact_awards.contact_id > contacts.id
 Ref: contact_awards.award_type_id > award_types.id
 Ref: user_accounts.contact_id - contacts.id

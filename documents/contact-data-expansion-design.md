@@ -64,7 +64,15 @@ different addresses (separated parents, a young person away from home),
 and a "shared family address" can still be read by joining contacts within
 a family unit, without a special-cased model for it.
 
-## Emergency contact
+## Emergency contact — delivered
+
+See [`reviews/emergency-contact-endpoint.md`](reviews/emergency-contact-endpoint.md).
+Note: the read-scope question this section originally left implicit
+(whether `contact:view-sensitive` includes self/family, not just
+organisational roles) was resolved during implementation — it does; see
+the review and "Sensitive-data read access" below, which now reflects
+that decision rather than the narrower role-only wording this section
+first proposed.
 
 **`contact_emergency_contacts`**: `contact_id` (whose emergency contact
 this is), `emergency_contact_id` (who to contact — a foreign key to
@@ -204,21 +212,25 @@ answers one relationship hop, not two. Built on top of Prerequisite 2
 rather than replacing it: prerequisite 2 answers "who's in my exact
 group," this extends that set through `contact_family_units`.
 
-## Sensitive-data read access
+## Sensitive-data read access — delivered for emergency contact
 
 Medical conditions and emergency contact get a new, separately-grantable
 `contact:view-sensitive` action rather than riding on ordinary
 `contact:view` — so a Group Helper who can see a child's name and roles
-doesn't automatically see their medical notes. Scoped identically to
-`contact:view`'s *existing* read scope per role (Group Leader → assigned
-group and every descendant group; Area Manager → same; Global System
-Administrator → everyone) — this deliberately mirrors `contact:view`'s
-group-plus-descendants read scope, not Prerequisite 2's new exact-group
-*write* scope; read and write scope differ here the same way they already
-will for ordinary contact fields. Being a separate action rather than a
-new rule bolted onto `contact:view` means it can be tightened further
-later (for example, requiring a safeguarding-training flag) without
-touching ordinary contact visibility.
+doesn't automatically see their medical notes or emergency contact.
+Resolved during the emergency-contact increment (asked explicitly, since
+this section's original wording was ambiguous on the point): it mirrors
+`contact:view`'s **entire current rule set**, not just the organisational
+roles — Global System Administrator → everyone; Area Manager →
+`group_descendants`; Group Leader → `group_descendants` and
+`group_and_family`; family `Parent` → `family`; `self` → `self`. A person
+can see their own emergency contacts and a parent can see their child's,
+consistent with how every other contact-data-expansion category treats
+self/family read access, not just organisational roles. Being a separate
+action rather than a new rule bolted onto `contact:view` means it can be
+tightened further later (for example, requiring a safeguarding-training
+flag) without touching ordinary contact visibility. See
+[`reviews/emergency-contact-endpoint.md`](reviews/emergency-contact-endpoint.md).
 
 ## Still to confirm before writing any contract
 
@@ -250,9 +262,12 @@ shipping first:
    Trivial schema (five nullable columns on `contacts`), surfaced through
    the existing contact endpoints; a new `contact-personal:update` action
    carries the full write model independently of `contact:update`.
-6. **Emergency contact** — self-contained, moderate sensitivity.
+6. **Emergency contact** — delivered; see
+   [`reviews/emergency-contact-endpoint.md`](reviews/emergency-contact-endpoint.md).
+   Self-contained table, the one hard-delete resource in this system, and
+   the first to use the new `contact:view-sensitive` read permission.
 7. **Communications preferences**, once its exact shape (the remaining
    open question above) is confirmed.
 8. **Medical conditions** last — the largest schema (three tables), and
-   the category that also introduces the new `contact:view-sensitive`
-   permission.
+   the second category to use `contact:view-sensitive` (introduced by
+   emergency contact, item 6 above).

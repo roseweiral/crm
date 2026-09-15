@@ -11,6 +11,7 @@ from routers.contact_details import router as contact_details_router
 from routers.contact_role_groups import router as contact_role_groups_router
 from routers.contacts import router as contacts_router
 from routers.documents import router as documents_router
+from routers.emergency_contacts import router as emergency_contacts_router
 from routers.family_units import router as family_units_router
 from routers.reference_data import router as reference_data_router
 from starlette.middleware.sessions import SessionMiddleware
@@ -35,7 +36,7 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["ETag", "Location"],
     allow_credentials=True,
@@ -46,6 +47,7 @@ app.include_router(family_units_router, prefix="/api/v1", dependencies=protected
 app.include_router(reference_data_router, prefix="/api/v1", dependencies=protected)
 app.include_router(contact_role_groups_router, prefix="/api/v1", dependencies=protected)
 app.include_router(contact_details_router, prefix="/api/v1", dependencies=protected)
+app.include_router(emergency_contacts_router, prefix="/api/v1", dependencies=protected)
 app.include_router(address_book_router, prefix="/api/v1", dependencies=protected)
 app.include_router(documents_router, prefix="/api/v1", dependencies=protected)
 app.include_router(authentication_router)

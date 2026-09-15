@@ -28,6 +28,21 @@ def allowed_origins() -> list[str]:
     return origins
 
 
+def require_write(
+    origin: str | None = Header(
+        default=None, description="Exact configured frontend origin."
+    ),
+    x_crm_csrf: str | None = Header(
+        default=None, description="Must equal 1 for contact writes."
+    ),
+) -> None:
+    """Origin/CSRF check shared by every write, including bodyless ones (DELETE)."""
+    if origin not in allowed_origins() or x_crm_csrf != "1":
+        raise HTTPException(
+            status_code=403, detail="Write origin or CSRF header is invalid"
+        )
+
+
 def require_json_write(
     request: Request,
     origin: str | None = Header(
@@ -37,10 +52,7 @@ def require_json_write(
         default=None, description="Must equal 1 for contact writes."
     ),
 ) -> None:
-    if origin not in allowed_origins() or x_crm_csrf != "1":
-        raise HTTPException(
-            status_code=403, detail="Write origin or CSRF header is invalid"
-        )
+    require_write(origin, x_crm_csrf)
     if (
         request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
         != "application/json"

@@ -13,10 +13,12 @@ and writes to other resources are future increments, not implemented promises.
 Each increment follows documentation → failing tests → implementation → review;
 see [`way-of-working.md`](way-of-working.md) for the detailed cycle.
 
-The second increment, specified below, is the organisation-wide address book and its self-service visibility settings. The third is the read-only documentation browser. The fourth, fifth, and sixth are the three contact-data-expansion prerequisites (Main Contact tracking, the Group-Leader-exact-group write scope, and its family extension). The seventh is contact details (phone numbers and addresses). The eighth,
-specified below, is personal details (date of birth, preferred name,
-phonetic name, pronouns, gender) — see
+The second increment, specified below, is the organisation-wide address book and its self-service visibility settings. The third is the read-only documentation browser. The fourth, fifth, and sixth are the three contact-data-expansion prerequisites (Main Contact tracking, the Group-Leader-exact-group write scope, and its family extension). The seventh is contact details (phone numbers and addresses). The eighth
+is personal details (date of birth, preferred name, phonetic name,
+pronouns, gender). The ninth, specified below, is emergency contact — see
 [`contact-data-expansion-design.md`](contact-data-expansion-design.md).
+It also introduces `contact:view-sensitive`, a new read permission
+separate from ordinary `contact:view`.
 
 ## Shared conventions
 
@@ -709,6 +711,105 @@ include personal-detail field names.
   future" — `preferred_name`/`phonetic_name`/`pronouns`/`gender` are
   unvalidated free text, matching every other free-text field in this
   system.
+
+## Emergency contact
+
+`contact-data-expansion-design.md`'s third data category. One new table,
+`contact_emergency_contacts` — an ordered, per-contact list of who to
+contact in an emergency, each entry pointing at another CRM contact
+(never free text: if the right person isn't a contact yet, they're added
+as one, with no login, before being set as an emergency contact).
+Deliberately **not** dated/historical, unlike phone numbers and
+addresses — this session only asked for the current, ordered list, not a
+queryable history of past emergency contacts, so there's no
+`start_date`/`end_date` and removal is a genuine `DELETE`, not an
+end-dating. (Design doc: "Revisit if that turns out to be wrong.")
+
+| Field | Description |
+| --- | --- |
+| id | Server-assigned |
+| contact_id | Whose emergency contact this is |
+| emergency_contact_id | Who to contact — FK to `contacts.id` |
+| priority | Integer, `1` = primary, `2` = secondary, etc. |
+| relationship | Free text (`"Mother"`, `"Neighbour"`, `"Family friend"`) — not constrained to `family_relationship_type`, since an emergency contact isn't always an existing family relationship |
+
+Constraints: `contact_id <> emergency_contact_id` (422 if equal); unique
+`(contact_id, priority)` and unique `(contact_id, emergency_contact_id)`
+(409 on either violation — the caller reorders by patching the
+conflicting row first, no automatic shifting, unlike phone numbers'
+`is_primary` swap: priority is an explicit ordinal the client controls,
+and silently renumbering other rows on the caller's behalf could
+surprise it).
+
+### Reading: `contact:view-sensitive`, not `contact:view`
+
+Unlike phone numbers, addresses, and personal details, reading emergency
+contacts requires a new, separately-grantable action,
+`contact:view-sensitive`, rather than riding on ordinary `contact:view` —
+so, for example, a Group Helper who can see a child's name and roles
+doesn't automatically see who their emergency contact is. Per this
+session's decision, `contact:view-sensitive` mirrors `contact:view`'s
+*entire* current rule set exactly (Global System Administrator → all;
+Area Manager → `group_descendants`; Group Leader → `group_descendants` and
+`group_and_family`; family `Parent` → `family`; `self` → `self`) — being a
+separate action, rather than a new rule on `contact:view` itself, means it
+can be tightened independently later (for example, requiring a
+safeguarding-training flag) without touching ordinary contact visibility.
+
+### Writing: `contact-emergency-contact:update`
+
+Same write-access model as `contact-phone:update`/`contact-address:update`:
+Global System Administrator; the contact themselves (`self`); the family's
+current Main Contact (`main_contact_family`, scope `family`); a Group
+Leader over their exact group and its members' families
+(`group_and_family`). Area Manager and Group Helper get no write rule.
+
+`GET /api/v1/contact-emergency-contacts` — optional `contact_id` filter;
+without it, every row the caller's `contact:view-sensitive` scope covers.
+Paginated like every other collection.
+
+`GET /api/v1/contact-emergency-contacts/{id}` — one row plus a strong
+ETag. 404 outside the caller's `contact:view-sensitive` scope, concealing
+existence like every other detail endpoint.
+
+`POST /api/v1/contact-emergency-contacts` —
+```json
+{"contact_id": "...", "emergency_contact_id": "...", "priority": 1, "relationship": "Mother"}
+```
+Requires `contact-emergency-contact:update` on `contact_id`. 422 if
+`contact_id == emergency_contact_id` or `emergency_contact_id` doesn't
+refer to an existing contact. 409 on a `priority` or
+`emergency_contact_id` already used by this `contact_id`. 201, `Location`,
+ETag.
+
+`PATCH /api/v1/contact-emergency-contacts/{id}` — any nonempty subset of
+`emergency_contact_id`, `priority`, `relationship`. Same `If-Match`,
+authorization, and 422/409 rules as `POST`, checked against the row's
+existing `contact_id`.
+
+`DELETE /api/v1/contact-emergency-contacts/{id}` — the only hard-delete
+endpoint in this system, matching the "not dated/historical" schema
+decision above. Requires `contact-emergency-contact:update` on the row's
+`contact_id` and the same `If-Match` mechanics as `PATCH` (428 missing,
+422 malformed, 412 stale) — deleting a row a client hasn't seen the latest
+version of is rejected the same way an out-of-date `PATCH` is. 204 No
+Content on success; 404 outside scope.
+
+### Shared conventions
+
+- Same write-header requirements as every other write: `X-CRM-CSRF: 1`,
+  matching `Origin`, `Content-Type: application/json` (not required for
+  `DELETE`, which has no body).
+- Resource change and a `contact_emergency_contact.created`/`.updated`/
+  `.deleted` success audit event commit together; audit failure rolls back
+  the resource change.
+- 401/403/404/415/422/428/412 follow "Shared conventions" above exactly.
+
+### Not in this increment
+
+- Any notification or reminder tied to emergency contacts (e.g. prompting
+  a Group Leader to confirm the list is current before an event).
+- Restoring a deleted emergency contact — there is no undo; re-`POST` it.
 
 ## Following increments (design pending)
 
