@@ -5,6 +5,8 @@ export interface ResourceDefinition {
   title: string;
   path: string;
   describe: (item: ApiRecord) => string;
+  /** Fetch `{path}/{id}/{detailSuffix}` instead of `{path}/{id}` for the detail view. */
+  detailSuffix?: string;
 }
 
 function text(value: unknown): string {
@@ -17,6 +19,7 @@ export const resources: ResourceDefinition[] = [
     title: "Contacts",
     path: "/api/v1/contacts",
     describe: (item) => `${text(item.first_name)} ${text(item.last_name)}`,
+    detailSuffix: "profile",
   },
   {
     key: "family-units",

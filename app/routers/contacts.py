@@ -17,6 +17,7 @@ from fastapi import (
     Response,
     status,
 )
+from models.contact_details import ContactAddress, ContactPhoneNumber
 from models.contacts import (
     CORE_CONTACT_FIELDS,
     PERSONAL_DETAIL_FIELDS,
@@ -25,6 +26,8 @@ from models.contacts import (
     ContactDetail,
     ContactPage,
     ContactPatch,
+    ContactProfile,
+    ContactProfileEmergencyContact,
 )
 from psycopg import Connection, sql
 from psycopg.errors import UniqueViolation
@@ -287,3 +290,79 @@ def update_contact(
         details={"contact_id": str(contact_id), "fields": sorted(changes)},
     )
     return contact_response(row, response)
+
+
+PHONE_COLUMNS = "id, contact_id, phone_type, number, is_primary, start_date, end_date"
+ADDRESS_COLUMNS = (
+    "id, contact_id, address_type, line1, line2, city, region, postcode, "
+    "country, start_date, end_date"
+)
+EMERGENCY_CONTACT_PROFILE_COLUMNS = """
+  cec.id, cec.emergency_contact_id, cec.priority, cec.relationship,
+  c.first_name, c.last_name, c.email, pn.number AS phone_number
+"""
+
+
+@router.get("/{contact_id}/profile", response_model=ContactProfile)
+def get_contact_profile(
+    contact_id: UUID,
+    authorization: AuthorizationService = Depends(get_authorization_service),
+    connection: Connection[Any] = Depends(get_connection),
+) -> ContactProfile:
+    """Bundle a contact with their current phone numbers, addresses, and
+    (if permitted) emergency contacts, for the frontend's contact details
+    page - see documents/api-contract.md "Contact profile (read-only
+    aggregate)" for why this is separate from GET /contacts/{id} itself.
+    """
+    row = connection.execute(
+        f"SELECT {CONTACT_COLUMNS}, created_at, modified_at FROM contacts WHERE id = %s",
+        (contact_id,),
+    ).fetchone()
+    if row is None or not authorization.allows("contact:view", contact_id):
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    phone_rows = connection.execute(
+        f"""
+        SELECT {PHONE_COLUMNS} FROM contact_phone_numbers
+        WHERE contact_id = %s AND end_date IS NULL
+        ORDER BY is_primary DESC, start_date DESC, id
+        """,
+        (contact_id,),
+    ).fetchall()
+    address_rows = connection.execute(
+        f"""
+        SELECT {ADDRESS_COLUMNS} FROM contact_addresses
+        WHERE contact_id = %s AND end_date IS NULL
+        ORDER BY start_date DESC, id
+        """,
+        (contact_id,),
+    ).fetchall()
+
+    emergency_contacts: list[ContactProfileEmergencyContact] | None = None
+    if authorization.allows("contact:view-sensitive", contact_id):
+        emergency_rows = connection.execute(
+            f"""
+            SELECT {EMERGENCY_CONTACT_PROFILE_COLUMNS}
+            FROM contact_emergency_contacts cec
+            JOIN contacts c ON c.id = cec.emergency_contact_id
+            LEFT JOIN LATERAL (
+              SELECT number FROM contact_phone_numbers
+              WHERE contact_id = cec.emergency_contact_id AND end_date IS NULL
+              ORDER BY is_primary DESC, start_date DESC, id
+              LIMIT 1
+            ) pn ON true
+            WHERE cec.contact_id = %s
+            ORDER BY cec.priority, cec.id
+            """,
+            (contact_id,),
+        ).fetchall()
+        emergency_contacts = [
+            ContactProfileEmergencyContact.model_validate(item) for item in emergency_rows
+        ]
+
+    return ContactProfile(
+        contact=ContactDetail.model_validate(row),
+        phone_numbers=[ContactPhoneNumber.model_validate(item) for item in phone_rows],
+        addresses=[ContactAddress.model_validate(item) for item in address_rows],
+        emergency_contacts=emergency_contacts,
+    )

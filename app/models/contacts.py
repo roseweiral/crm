@@ -16,6 +16,8 @@ from pydantic import (
     model_validator,
 )
 
+from models.contact_details import ContactAddress, ContactPhoneNumber
+
 
 class ContactStatus(str, Enum):
     ACTIVE = "active"
@@ -121,3 +123,36 @@ class ContactPatch(BaseModel):
         if not self.model_fields_set:
             raise ValueError("At least one editable field is required")
         return self
+
+
+class ContactProfileEmergencyContact(BaseModel):
+    """An emergency-contact entry, with the referenced person's own basic
+    contact details embedded - so a page showing this list can actually
+    reach them without a second request per entry. phone_number is that
+    person's current primary number, falling back to their most recently
+    added current number, or None if they have none recorded.
+    """
+
+    id: UUID
+    emergency_contact_id: UUID
+    priority: int
+    relationship: str
+    first_name: str
+    last_name: str
+    email: str | None
+    phone_number: str | None
+
+
+class ContactProfile(BaseModel):
+    """Read-only aggregate for the frontend's contact details page.
+
+    See documents/api-contract.md "Contact profile (read-only aggregate)".
+    emergency_contacts is None (not []) when the caller lacks
+    contact:view-sensitive for this contact - distinct from a real empty
+    list, which means "recorded as having none".
+    """
+
+    contact: ContactDetail
+    phone_numbers: list[ContactPhoneNumber]
+    addresses: list[ContactAddress]
+    emergency_contacts: list[ContactProfileEmergencyContact] | None

@@ -15,10 +15,12 @@ see [`way-of-working.md`](way-of-working.md) for the detailed cycle.
 
 The second increment, specified below, is the organisation-wide address book and its self-service visibility settings. The third is the read-only documentation browser. The fourth, fifth, and sixth are the three contact-data-expansion prerequisites (Main Contact tracking, the Group-Leader-exact-group write scope, and its family extension). The seventh is contact details (phone numbers and addresses). The eighth
 is personal details (date of birth, preferred name, phonetic name,
-pronouns, gender). The ninth, specified below, is emergency contact — see
+pronouns, gender). The ninth is emergency contact — see
 [`contact-data-expansion-design.md`](contact-data-expansion-design.md).
 It also introduces `contact:view-sensitive`, a new read permission
-separate from ordinary `contact:view`.
+separate from ordinary `contact:view`. The tenth, specified below, is a
+read-only contact profile aggregate for the frontend's contact details
+page.
 
 ## Shared conventions
 
@@ -810,6 +812,77 @@ Content on success; 404 outside scope.
 - Any notification or reminder tied to emergency contacts (e.g. prompting
   a Group Leader to confirm the list is current before an event).
 - Restoring a deleted emergency contact — there is no undo; re-`POST` it.
+
+## Contact profile (read-only aggregate)
+
+The frontend's contact details page needs personal details, phone
+numbers, addresses, and emergency contacts together, without four
+round-trips per page load. Deliberately **not** achieved by embedding
+those into `ContactDetail` itself: `ContactDetail`'s ETag drives
+`PATCH /api/v1/contacts/{id}`'s optimistic-concurrency check, and folding
+in data that changes independently (a phone number edited elsewhere)
+would make that ETag go stale for reasons unrelated to what the caller
+actually edited. Instead, a separate, read-only, unversioned endpoint:
+
+`GET /api/v1/contacts/{contact_id}/profile`
+
+```json
+{
+  "contact": { "...": "same shape as GET /api/v1/contacts/{id}" },
+  "phone_numbers": [{ "id": "...", "phone_type": "mobile", "number": "...", "is_primary": true }],
+  "addresses": [{ "id": "...", "address_type": "home", "line1": "...", "...": "..." }],
+  "emergency_contacts": [{
+    "id": "...", "emergency_contact_id": "...", "priority": 1, "relationship": "Mother",
+    "first_name": "...", "last_name": "...", "email": "...", "phone_number": "..."
+  }]
+}
+```
+
+- `contact`: identical fields to `GET /api/v1/contacts/{id}`, gated by
+  `contact:view` exactly as that endpoint is - 404 if the contact doesn't
+  exist or is out of the caller's `contact:view` scope, concealing
+  existence the same way.
+- `phone_numbers`, `addresses`: **current only** (`end_date IS NULL`) -
+  this is a "what do I need to know right now" view, not a history
+  browser; the existing `GET /api/v1/contact-phone-numbers` and
+  `/contact-addresses` collection endpoints remain how historical rows
+  are queried. Gated by `contact:view` (unchanged - reused directly, same
+  as those endpoints' own read side).
+- `emergency_contacts`: gated separately by `contact:view-sensitive`. When
+  the caller has `contact:view` but not `contact:view-sensitive` for this
+  contact, the key is `null` - meaning "you can't see this" - never `[]`,
+  which would misleadingly mean "recorded as having none." Each entry
+  embeds the referenced contact's `first_name`, `last_name`, `email`, and
+  `phone_number` directly - the whole point of an emergency contact is
+  being able to actually reach them, so a page showing this list needs
+  that without a second round-trip per entry. `phone_number` is that
+  person's current primary number if they have one, else their most
+  recently added current number, else `null` if they have none recorded.
+  Deliberately **not** gated by a further permission check against the
+  referenced person's own record: once the caller is permitted to see
+  *whose* emergency contact someone is (`contact:view-sensitive` on the
+  contact being viewed), withholding how to reach that person would
+  defeat the feature's purpose. `emergency_contact_id` remains present
+  too, for a future link to that contact's own profile.
+- No `ETag`, no `If-Match` - this endpoint is display-only. Writes still
+  go through each resource's own endpoint (`PATCH /api/v1/contacts/{id}`,
+  the `contact-phone-numbers`/`contact-addresses`/
+  `contact-emergency-contacts` endpoints), each with its own ETag.
+- No pagination - a contact has a small, bounded number of current phone
+  numbers, addresses, and emergency contacts.
+- 401 unauthenticated; no CSRF requirements (a `GET`, like every other
+  read endpoint).
+
+### Not in this increment
+
+- Any other resource gaining a `/profile`-shaped aggregate (family units,
+  groups) - added only where a real frontend page needs it, per this
+  session's decision.
+- Including historical (end-dated) phone numbers or addresses in the
+  aggregate.
+- Medical conditions, once that category ships - this endpoint gains a
+  fourth key then, gated by the same `contact:view-sensitive` action
+  already used for `emergency_contacts`.
 
 ## Following increments (design pending)
 

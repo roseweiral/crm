@@ -44,6 +44,7 @@ the relevant one instead of reading the whole tree.
 | [Contact details endpoints review](documents/reviews/contact-details-endpoints.md) | TDD evidence and design notes for phone number and address CRUD, the first contact-data-expansion data category |
 | [Personal details endpoint review](documents/reviews/personal-details-endpoint.md) | TDD evidence and design notes for date of birth, preferred name, phonetic name, pronouns, and gender on the existing contact endpoints |
 | [Emergency contact endpoint review](documents/reviews/emergency-contact-endpoint.md) | TDD evidence and design notes for the emergency contact list, the new contact:view-sensitive permission, and the system's one hard-delete endpoint |
+| [Contact profile endpoint review](documents/reviews/contact-profile-endpoint.md) | TDD evidence and design notes for the read-only aggregate endpoint powering the frontend's contact details page |
 | [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
 | [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
 | [App README](app/README.md) | FastAPI application entry points |
