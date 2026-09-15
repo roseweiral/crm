@@ -17,6 +17,7 @@ the relevant one instead of reading the whole tree.
 | [Way of working](documents/way-of-working.md) | The 11-step cycle used for every feature increment: deliverable → contract → API tests → implement → review → documentation → frontend tests → implement → review → document → confirm all tests pass |
 | [Open questions](documents/open-questions.md) | Tracked list of design decisions, resolved and still-open, blocking future increments |
 | [Family and directory design](documents/family-and-directory-design.md) | Agreed decisions on Young Member roles, the organisation-wide address book, and family relationships/Main Contact |
+| [Contact data expansion design](documents/contact-data-expansion-design.md) | Agreed schema for phone numbers, addresses, personal details, emergency contact, medical conditions, and communications preferences |
 | [Automated PR review](documents/automated-pr-review.md) | The Claude Code Action that reviews pull requests, and the required repository secret |
 
 ### Authentication and authorization
