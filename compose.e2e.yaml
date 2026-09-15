@@ -1,0 +1,42 @@
+# Override layered on top of compose.yaml for e2e test runs only:
+#
+#   docker compose --env-file .env.e2e.example -f compose.yaml -f compose.e2e.yaml \
+#     -p crm-e2e --profile test run --rm --build e2e-tester
+#
+# The interactive `frontend` service normally runs the Vite dev server on its
+# own origin, reached by a host browser at http://localhost:<port> — same
+# "site" as the API for SameSite=Lax cookie purposes because both share the
+# `localhost` hostname (see documents/authentication-operations.md). Inside
+# Docker, though, a containerized browser reaches the frontend and API on
+# different hostnames (`frontend` vs `app`), which the SameSite=Lax session
+# cookie treats as different sites, so it would never be sent to the API at
+# all. Building the frontend's production (nginx) target instead makes the
+# browser talk to one origin only — nginx proxies /api and /auth to `app`
+# (web/nginx.conf) — restoring the same-site cookie without weakening it.
+#
+# See documents/reviews/address-book-frontend.md for the full rationale.
+
+services:
+  frontend:
+    build:
+      target: production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  app:
+    environment:
+      CORS_ORIGINS: http://frontend:8080
+      FRONTEND_URL: http://frontend:8080
+
+  e2e-tester:
+    environment:
+      FRONTEND_URL: http://frontend:8080
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+    depends_on:
+      database:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy

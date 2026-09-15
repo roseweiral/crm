@@ -18,15 +18,26 @@ from database import get_connection
 
 
 POLICY_PATH = Path(os.environ.get("AUTHORIZATION_POLICY_PATH", Path(__file__).with_name("policies") / "authorization.toml"))
-VALID_SOURCES = {"authenticated", "access_role", "group_role", "family_relationship", "self"}
+VALID_SOURCES = {
+    "authenticated",
+    "access_role",
+    "access_role_flag",
+    "group_role",
+    "family_relationship",
+    "self",
+}
 VALID_SCOPES = {"all", "group_descendants", "family", "self"}
 SOURCE_SCOPES = {
     "authenticated": {"all"},
     "access_role": {"all"},
-    "group_role": {"group_descendants"},
+    "access_role_flag": {"all"},
+    "group_role": {"group_descendants", "all"},
     "family_relationship": {"family"},
     "self": {"self"},
 }
+# Flags this policy engine knows how to read off access_roles, rather than
+# matching a role by name. "is_global" is the only one so far.
+ACCESS_ROLE_FLAGS = {"is_global"}
 
 
 @dataclass(frozen=True)
@@ -104,8 +115,12 @@ def load_policy() -> AuthorizationPolicy:
                     f"'{source}' with scope '{scope}'"
                 )
             relationship = raw_rule.get("relationship")
-            if source in {"access_role", "group_role", "family_relationship"}:
+            if source in {"access_role", "access_role_flag", "group_role", "family_relationship"}:
                 relationship = _required_text(relationship, f"{action}.rules.relationship")
+                if source == "access_role_flag" and relationship not in ACCESS_ROLE_FLAGS:
+                    raise RuntimeError(
+                        f"Authorization action '{action}' uses unknown access role flag '{relationship}'"
+                    )
             elif relationship is not None:
                 raise RuntimeError(f"Authorization action '{action}' must not give '{source}' a relationship")
             rules.append(PolicyRule(source=source, relationship=relationship, scope=scope))
@@ -125,6 +140,7 @@ class AuthorizationService:
         self.connection = connection
         self.policy = policy
         self._access_roles: frozenset[str] | None = None
+        self._access_role_flags: frozenset[str] | None = None
         self._groups_by_role: dict[str, frozenset[UUID]] | None = None
         self._families_by_relationship: dict[str, frozenset[UUID]] | None = None
 
@@ -146,8 +162,17 @@ class AuthorizationService:
                     return ResourceScope(unrestricted=True)
             elif rule.source == "self" and rule.scope == "self":
                 permitted_ids.add(self.user.contact_id)
+            elif rule.source == "access_role_flag":
+                if rule.relationship not in self.access_role_flags:
+                    continue
+                if rule.scope == "all":
+                    return ResourceScope(unrestricted=True)
             elif rule.source == "group_role":
                 group_ids = self.groups_by_role.get(rule.relationship or "", frozenset())
+                if rule.scope == "all":
+                    if group_ids:
+                        return ResourceScope(unrestricted=True)
+                    continue
                 permitted_ids.update(self._group_resource_ids(action_policy.resource, group_ids))
             elif rule.source == "family_relationship":
                 family_ids = self.families_by_relationship.get(rule.relationship or "", frozenset())
@@ -178,6 +203,25 @@ class AuthorizationService:
             ).fetchall()
             self._access_roles = frozenset(row["name"] for row in rows)
         return self._access_roles
+
+    @property
+    def access_role_flags(self) -> frozenset[str]:
+        """Flags (currently just "is_global") held by any of the user's active
+        access role assignments, read off access_roles rather than by name."""
+        if self._access_role_flags is None:
+            rows = self.connection.execute(
+                """
+                SELECT bool_or(ar.is_global) AS is_global
+                FROM user_access_role_assignments assignment
+                JOIN access_roles ar ON ar.id = assignment.access_role_id
+                WHERE assignment.user_account_id = %s
+                  AND assignment.start_date <= current_date
+                  AND (assignment.end_date IS NULL OR assignment.end_date >= current_date)
+                """,
+                (self.user.account_id,),
+            ).fetchone()
+            self._access_role_flags = frozenset({"is_global"}) if rows and rows["is_global"] else frozenset()
+        return self._access_role_flags
 
     @property
     def groups_by_role(self) -> dict[str, frozenset[UUID]]:

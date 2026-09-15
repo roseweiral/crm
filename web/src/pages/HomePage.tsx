@@ -1,11 +1,6 @@
-import type { ResourceDefinition } from "../features/resources";
+import { Link } from "react-router-dom";
 
-interface HomePageProps {
-  resources: ResourceDefinition[];
-  onSelect: (resource: ResourceDefinition) => void;
-}
-
-export function HomePage({ resources, onSelect }: HomePageProps) {
+export function HomePage() {
   return (
     <main>
       <header className="hero-panel">
@@ -18,15 +13,19 @@ export function HomePage({ resources, onSelect }: HomePageProps) {
         <p className="welcome">Welcome to the New FAB CRM</p>
       </header>
 
-      <section className="query-panel" aria-labelledby="queries-heading">
-        <h2 id="queries-heading">Explore the data</h2>
-        <div className="resource-grid">
-          {resources.map((resource) => (
-            <button key={resource.key} onClick={() => onSelect(resource)} type="button">
-              Get {resource.title}
-            </button>
-          ))}
-        </div>
+      <section className="query-panel" aria-labelledby="address-book-heading">
+        <h2 id="address-book-heading">Address Book</h2>
+        <p>Browse volunteers across the whole organisation.</p>
+        <Link className="button" to="/address-book">
+          Address Book
+        </Link>
+      </section>
+
+      <section className="query-panel" aria-labelledby="resources-heading">
+        <h2 id="resources-heading">Explore the data</h2>
+        <Link className="button secondary" to="/resources">
+          Open the API browser
+        </Link>
       </section>
     </main>
   );

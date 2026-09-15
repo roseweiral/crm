@@ -14,7 +14,7 @@ the relevant one instead of reading the whole tree.
 | Document | Covers |
 | --- | --- |
 | [Project overview](documents/project-overview.md) | Vision, repository structure, technology choices, containers, environments |
-| [Way of working](documents/way-of-working.md) | The four-stage contract → tests → implementation → review cycle used for every endpoint increment |
+| [Way of working](documents/way-of-working.md) | The 11-step cycle used for every feature increment: deliverable → contract → API tests → implement → review → documentation → frontend tests → implement → review → document → confirm all tests pass |
 | [Open questions](documents/open-questions.md) | Tracked list of design decisions, resolved and still-open, blocking future increments |
 | [Family and directory design](documents/family-and-directory-design.md) | Agreed decisions on Young Member roles, the organisation-wide address book, and family relationships/Main Contact |
 | [Automated PR review](documents/automated-pr-review.md) | The Claude Code Action that reviews pull requests, and the required repository secret |
@@ -33,6 +33,8 @@ the relevant one instead of reading the whole tree.
 | --- | --- |
 | [API contract](documents/api-contract.md) | The behavioral specification for each endpoint increment; source of truth for write behavior |
 | [Contact-writes review](documents/reviews/contact-writes.md) | TDD evidence and follow-up findings from the first write increment |
+| [Address-book review](documents/reviews/address-book.md) | TDD evidence and follow-up findings from the organisation-wide address book increment |
+| [Address-book frontend review](documents/reviews/address-book-frontend.md) | TDD evidence, the same-site cookie fix, and follow-up findings from the address book's frontend increment |
 | [Tests README](tests/README.md) | Test categories, the TDD workflow, and how to run focused test selections |
 | [Test fixtures](tests/fixtures/README.md) | Where reusable test inputs live |
 | [App README](app/README.md) | FastAPI application entry points |

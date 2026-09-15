@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import { resources, type ResourceDefinition } from "./features/resources";
+import { AddressBookPage } from "./pages/AddressBookPage";
+import { AddressBookVisibilityPage } from "./pages/AddressBookVisibilityPage";
 import { HomePage } from "./pages/HomePage";
-import { ResourcePage } from "./pages/ResourcePage";
+import { ResourcesPage } from "./pages/ResourcesPage";
 import { authenticationUrl, getMe, signOut, type CurrentUser } from "./services/api";
 
 
 export function App() {
-  const [selectedResource, setSelectedResource] = useState<ResourceDefinition | null>(null);
   const [user, setUser] = useState<CurrentUser | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
@@ -39,7 +40,6 @@ export function App() {
     setSignOutError(null);
     try {
       await signOut();
-      setSelectedResource(null);
       setUser(null);
       window.history.replaceState({}, "", window.location.pathname);
     } catch {
@@ -66,9 +66,16 @@ export function App() {
     </nav>
   );
 
-  if (selectedResource) {
-    return <>{userControls}<ResourcePage resource={selectedResource} onHome={() => setSelectedResource(null)} /></>;
-  }
-
-  return <>{userControls}<HomePage resources={resources} onSelect={setSelectedResource} /></>;
+  return (
+    <BrowserRouter>
+      {userControls}
+      <Routes>
+        <Route element={<HomePage />} path="/" />
+        <Route element={<AddressBookPage />} path="/address-book" />
+        <Route element={<AddressBookVisibilityPage />} path="/address-book/visibility" />
+        <Route element={<ResourcesPage />} path="/resources" />
+        <Route element={<Navigate replace to="/" />} path="*" />
+      </Routes>
+    </BrowserRouter>
+  );
 }

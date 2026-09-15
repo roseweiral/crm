@@ -13,6 +13,8 @@ and writes to other resources are future increments, not implemented promises.
 Each increment follows documentation → failing tests → implementation → review;
 see [`way-of-working.md`](way-of-working.md) for the detailed cycle.
 
+The second increment, specified below, is the organisation-wide address book and its self-service visibility settings.
+
 ## Shared conventions
 
 - Resources use `/api/v1` and UUID identifiers. GET never changes resource data.
@@ -112,6 +114,200 @@ must apply `database/migrations/001_contact_email_uniqueness.sql` before enablin
 writes. The migration is transactional and fails if existing normalized emails
 collide; resolve those duplicates explicitly rather than deleting or merging data
 automatically. See `database/migrations/README.md` for the check and application steps.
+
+## Organisation-wide address book
+
+Resolves [open questions](open-questions.md) #3 and #7's cross-branch case; full
+background and rationale live in
+[`family-and-directory-design.md`](family-and-directory-design.md). This
+increment adds a read-only, org-wide directory of adult volunteers, plus
+self-service control over your own presence in it. It does not depend on the
+still-pending Young Member role type or on any family/Main Contact write —
+neither is a prerequisite.
+
+### Eligibility
+
+A contact is a directory entry if all of the following hold:
+
+- `contacts.status = 'active'`.
+- `contacts.hidden_from_directory = false`.
+- They hold at least one currently active (`start_date <= current_date` and
+  `end_date IS NULL or end_date >= current_date`), non-hidden assignment that
+  is either a `contact_roles_groups` row whose role type is Group Leader,
+  Group Helper, or Area Manager (never Young Member, once that role type
+  exists), or a `user_access_role_assignments` row whose access role has
+  `is_global = true` (this reads the existing flag rather than naming "Global
+  System Administrator" directly, so it keeps working if another global role
+  is added later).
+
+A contact who meets this bar shows only the individual role or assignment
+rows that are not themselves hidden. Hiding every one of a contact's eligible
+roles has the same visible effect as hiding the contact entirely, even though
+the two flags are stored and edited separately.
+
+Visibility is uniform regardless of who is asking; there is no
+requester-aware override. Nobody needs one, because a Group Leader, Area
+Manager, or Global System Administrator with hierarchical scope over a
+person already sees that person's full, unfiltered record through the
+existing `GET /api/v1/contacts` and `GET /api/v1/contact-role-groups`
+endpoints, neither of which has any concept of directory visibility. That
+satisfies "cannot hide from your own leadership" structurally: the address
+book only ever changes what a peer with no hierarchical scope over you can
+see.
+
+### Directory access
+
+`GET /api/v1/address-book`
+
+Paginated the same way as every other collection (`items`, `page`,
+`page_size`, `total`; default `page_size=25`, maximum 100; invalid pagination
+returns 422). Ordered by `last_name, first_name, id`.
+
+Accepts an optional `group_id` query parameter to filter results by
+organisation structure. When present, only directory entries whose
+directory-eligible role or assignment (see Eligibility) is attached to that
+group, or to any descendant of it, are returned — the same
+descendant-inclusive semantics used everywhere else in the hierarchy. A
+malformed `group_id` returns 422. A `group_id` that doesn't match any group,
+or that matches a real group with no eligible people under it, returns 200
+with an empty `items` array and `total: 0` — this is a collection filter, not
+a detail lookup, and an empty result is an ordinary outcome, not an error.
+Omitting `group_id` returns the whole directory, unchanged from before.
+Pagination applies to the filtered set; changing the filter is expected to
+reset the caller to page 1, which is a client concern, not an API one.
+
+Requires the caller to hold at least one currently active role or assignment
+of the kinds listed under Eligibility — the address book is a directory *for*
+volunteers, not a listing every signed-in contact can browse. An
+authenticated contact with none of those (an ordinary parent, a child, or
+once it exists, a Young Member) receives 403. An unauthenticated request
+receives 401.
+
+Each item:
+
+| Field | Description |
+| --- | --- |
+| contact_id | The contact's ID |
+| first_name, last_name | As stored on the contact |
+| email | The contact's email, or null |
+| roles | Array of this contact's visible eligible roles (see below) |
+
+Each entry in `roles` is one of:
+
+```json
+{"kind": "group_role", "role_type_name": "Group Leader", "group_id": "...", "group_name": "Croydon Group 1", "group_path": [{"id": "...", "name": "HQ"}, "..."]}
+```
+
+```json
+{"kind": "access_role", "access_role_name": "Global System Administrator"}
+```
+
+`group_path` lists ancestors from the hierarchy root down to the assigned
+group inclusive, so a client can render the org structure without a second
+request.
+
+`GET /api/v1/address-book/{contact_id}` returns one entry in the same shape.
+A contact who is not currently a directory entry — not eligible, fully
+hidden, or nonexistent — returns 404 with
+`{"detail": "Address book entry not found"}`, the same privacy-preserving
+pattern used elsewhere for out-of-scope records. A malformed UUID returns
+422.
+
+Unlike family units, an address book listing shows full entries rather than
+bare IDs with detail deferred to a second request, because browsing the
+directory is the point of the list endpoint.
+
+### Self-service visibility settings
+
+`GET /api/v1/address-book/visibility` and `PATCH /api/v1/address-book/visibility`
+
+A contact's own visibility preferences, always scoped to the caller — there
+is no `{contact_id}` path parameter, the same pattern `GET /api/v1/me`
+already uses. Any authenticated contact may read and write their own
+settings, whether or not they currently hold an eligible role; the
+preference is harmless to store ahead of time and takes effect only once, or
+if, they do.
+
+GET returns:
+
+```json
+{
+  "hidden_from_directory": false,
+  "roles": [
+    {"id": "...", "kind": "group_role", "role_type_name": "Group Leader", "group_name": "Croydon Group 1", "hidden_from_directory": false},
+    {"id": "...", "kind": "access_role", "access_role_name": "Global System Administrator", "hidden_from_directory": false}
+  ]
+}
+```
+
+`roles` lists only the caller's currently active eligible assignments (ended
+assignments are omitted) and — unlike the public directory view — always
+includes ones the caller has already hidden, since they need to see a role
+to un-hide it.
+
+PATCH accepts any nonempty subset of `hidden_from_directory` (the
+whole-profile flag) and `roles` (a list of
+`{"id": "...", "hidden_from_directory": true}` patches to specific
+assignments). An `id` that is not one of the caller's own current eligible
+assignments returns 422. An empty patch returns 422, matching the general
+PATCH rule in Shared conventions.
+
+Concurrency and write protection mirror the contact-writes contract exactly:
+obtain the strong ETag from the GET, send it in `If-Match` (428 missing, 412
+stale, 422 for anything other than one strong tag), and send the configured
+`Origin` and `X-CRM-CSRF: 1` header (403 otherwise) — the same shared
+dependency contact writes already use, not a new one. A successful PATCH
+commits with a `directory_visibility.updated` audit event identifying the
+actor and which fields or role IDs changed, following the transaction and
+audit rules already agreed for contact writes.
+
+### Database changes
+
+Three new columns, added directly to `database/schema.sql`:
+
+- `contacts.hidden_from_directory boolean NOT NULL DEFAULT false`
+- `contact_roles_groups.hidden_from_directory boolean NOT NULL DEFAULT false`
+- `user_access_role_assignments.hidden_from_directory boolean NOT NULL DEFAULT false`
+
+All default to visible, so existing rows need no backfill decision.
+[`documents/database/db.dbml`](database/db.dbml) is the source of truth and
+already reflects these three columns; `schema.sql` is written to match it, not
+the other way around. There is no live database yet, so this increment
+declares the columns directly in `schema.sql` rather than writing a migration
+under `database/migrations/` — every environment is still built fresh from
+`schema.sql` plus demo/seed data, per [`way-of-working.md`](way-of-working.md).
+A migration becomes necessary only once a real database exists that this
+change must be applied to without a reset. This increment starts here, at the
+database layer, before any route or test — consistent with the note in
+`family-and-directory-design.md`.
+
+### Authorization policy
+
+Two new actions in `app/policies/authorization.toml`:
+
+- `directory:view` (resource: directory entry) — granted with `scope = "all"`
+  to anyone currently holding Group Leader, Group Helper, or Area Manager (in
+  any group), or an `is_global` access role. This is a new combination for
+  the policy engine: `source = "group_role"` paired with `scope = "all"`
+  rather than `scope = "group_descendants"`, because eligibility here means
+  "holds this kind of role somewhere," not "holds it over a specific
+  branch." `AuthorizationService` needs to support that combination before
+  this ships.
+- `directory-visibility:manage-own` (resource: directory entry) —
+  `source = "self"`, `scope = "self"`, granted to every authenticated
+  contact regardless of current role, matching the existing self rule
+  already used for `contact:view`.
+
+### Not in this increment
+
+- Skills and photo fields (explicit future vision — see
+  `family-and-directory-design.md`).
+- Free-text or name search, and any filter beyond `group_id` and plain
+  pagination.
+- An administrator managing another contact's visibility settings on their
+  behalf; only self-service is built now.
+- The Young Member role type and any role or group write increment —
+  unrelated and not a dependency.
 
 ## Following increments (design pending)
 

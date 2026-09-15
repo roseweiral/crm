@@ -1,0 +1,1051 @@
+ Image crm-pytest-fake-oidc Building 
+ Image crm-pytest-database Building 
+ Image crm-pytest-app Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.43kB done
+#1 DONE 0.0s
+
+#2 [app internal] load build definition from Dockerfile
+#2 transferring dockerfile: 494B done
+#2 DONE 0.0s
+
+#3 [fake-oidc internal] load build definition from Dockerfile
+#3 transferring dockerfile: 246B done
+#3 DONE 0.0s
+
+#4 [database internal] load build definition from Dockerfile
+#4 transferring dockerfile: 227B done
+#4 DONE 0.0s
+
+#5 [database internal] load metadata for docker.io/library/postgres:16-alpine
+#5 DONE 0.0s
+
+#6 [app internal] load metadata for docker.io/library/python:3.12-slim
+#6 DONE 0.0s
+
+#7 [database internal] load .dockerignore
+#7 transferring context: 80B done
+#7 DONE 0.0s
+
+#8 [app internal] load .dockerignore
+#8 transferring context: 85B done
+#8 DONE 0.0s
+
+#9 [fake-oidc internal] load .dockerignore
+#9 transferring context: 2B done
+#9 DONE 0.0s
+
+#10 [database internal] load build context
+#10 transferring context: 926B done
+#10 DONE 0.0s
+
+#11 [fake-oidc internal] load build context
+#11 transferring context: 177B done
+#11 DONE 0.0s
+
+#12 [app internal] load build context
+#12 transferring context: 1.76kB done
+#12 DONE 0.0s
+
+#13 [database 1/4] FROM docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+#13 resolve docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 0.0s done
+#13 DONE 0.0s
+
+#14 [app base 1/5] FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#14 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de 0.0s done
+#14 DONE 0.0s
+
+#15 [app base 2/5] WORKDIR /app
+#15 CACHED
+
+#16 [app base 4/5] RUN pip install --no-cache-dir --requirement requirements.txt
+#16 CACHED
+
+#17 [app base 3/5] COPY requirements.txt .
+#17 CACHED
+
+#18 [database 2/4] COPY schema.sql /docker-entrypoint-initdb.d/001-schema.sql
+#18 CACHED
+
+#19 [database 3/4] COPY --chmod=755 init/002-import-seed.sh /docker-entrypoint-initdb.d/002-import-seed.sh
+#19 CACHED
+
+#20 [app base 5/5] COPY . .
+#20 CACHED
+
+#21 [fake-oidc 3/5] COPY requirements.txt .
+#21 CACHED
+
+#22 [fake-oidc 4/5] RUN pip install --no-cache-dir --requirement requirements.txt
+#22 CACHED
+
+#23 [fake-oidc 2/5] WORKDIR /fake-oidc
+#23 CACHED
+
+#24 [database 4/4] COPY seed /seed
+#24 CACHED
+
+#25 [fake-oidc 5/5] COPY . .
+#25 CACHED
+
+#26 [app] exporting to image
+#26 exporting layers done
+#26 exporting manifest sha256:66f1a48da8840f372c4eb761695e262d999ff8d8d546fb718e2a7425f791c6fc done
+#26 exporting config sha256:1b2432540bea6a5880efbc1cdc4ec1ed02af6b2ba247db26b4986adbaecc101b done
+#26 exporting attestation manifest sha256:62b84b3dd3ca1fc41680f1881f3b78db22c0e512c8c44760cafcf4e642af2e42
+#26 exporting attestation manifest sha256:62b84b3dd3ca1fc41680f1881f3b78db22c0e512c8c44760cafcf4e642af2e42 0.0s done
+#26 exporting manifest list sha256:7c590e5314cba765ece20bb21cc6b2a38c11d4ce815899bd8a5b4782349cc51f done
+#26 naming to docker.io/library/crm-pytest-app:latest done
+#26 unpacking to docker.io/library/crm-pytest-app:latest done
+#26 DONE 0.1s
+
+#27 [fake-oidc] exporting to image
+#27 exporting layers done
+#27 exporting manifest sha256:7c8ef7b28a764f0e28acd27605197e290d3e5fb4811762cc958f6a276de09bac done
+#27 exporting config sha256:f84c385ce06534c71b0af7d8daea37b9da9d2cd90adba52adfeda33a8753df32 0.0s done
+#27 exporting attestation manifest sha256:ab947479e0db77c5c943c9db783b525b642a1f8122e2f1d874ed10f7dd948721 0.0s done
+#27 exporting manifest list sha256:4f1d9da07047cf6e7f731c33dc533f8ea9142690a14f4639ff2415f9f7eead1a done
+#27 naming to docker.io/library/crm-pytest-fake-oidc:latest done
+#27 unpacking to docker.io/library/crm-pytest-fake-oidc:latest done
+#27 DONE 0.1s
+
+#28 [database] exporting to image
+#28 exporting layers done
+#28 exporting manifest sha256:6e7878955978a6c5a0675b7f839151317f479e2626fd4872b9a1039ee27735a6 done
+#28 exporting config sha256:25d763adfe39c6dcecd75d4bb834149de3453cd89cc65ff05ba709f5e623cdda 0.0s done
+#28 exporting attestation manifest sha256:77e9bf84db75c0d8f580e1cceb02b11d42d882ced8b15788d788f525f702b40b 0.0s done
+#28 exporting manifest list sha256:d4719eb3667d19bbd6c044a58b61fe6f5f2002a64791db7c5c4782da48351d52 done
+#28 naming to docker.io/library/crm-pytest-database:latest done
+#28 unpacking to docker.io/library/crm-pytest-database:latest done
+#28 DONE 0.1s
+
+#29 [app] resolving provenance for metadata file
+#29 DONE 0.0s
+
+#30 [fake-oidc] resolving provenance for metadata file
+#30 DONE 0.0s
+
+#31 [database] resolving provenance for metadata file
+#31 DONE 0.0s
+ Image crm-pytest-app Built 
+ Image crm-pytest-database Built 
+ Image crm-pytest-fake-oidc Built 
+ Network crm-pytest_default Creating 
+ Network crm-pytest_default Created 
+ Volume crm-pytest_postgres_data Creating 
+ Volume crm-pytest_postgres_data Created 
+ Container crm-pytest-database-1 Creating 
+ Container crm-pytest-fake-oidc-1 Creating 
+ Container crm-pytest-fake-oidc-1 Created 
+ Container crm-pytest-database-1 Created 
+ Container crm-pytest-app-1 Creating 
+ Container crm-pytest-app-1 Created 
+ Container crm-pytest-fake-oidc-1 Starting 
+ Container crm-pytest-database-1 Starting 
+ Container crm-pytest-database-1 Started 
+ Container crm-pytest-database-1 Waiting 
+ Container crm-pytest-fake-oidc-1 Started 
+ Container crm-pytest-database-1 Healthy 
+ Container crm-pytest-app-1 Starting 
+ Container crm-pytest-app-1 Started 
+ Image crm-pytest-api-tester Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.83kB done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 470B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 33.21kB done
+#5 DONE 0.0s
+
+#6 [1/7] FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#6 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#6 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de 0.0s done
+#6 DONE 0.0s
+
+#7 [3/7] COPY app/requirements.txt ./app/requirements.txt
+#7 CACHED
+
+#8 [4/7] COPY tests/api/requirements.txt ./tests/api/requirements.txt
+#8 CACHED
+
+#9 [5/7] RUN pip install --no-cache-dir --requirement app/requirements.txt --requirement tests/api/requirements.txt
+#9 CACHED
+
+#10 [2/7] WORKDIR /workspace
+#10 CACHED
+
+#11 [6/7] COPY app ./app
+#11 CACHED
+
+#12 [7/7] COPY tests/api ./tests/api
+#12 DONE 0.0s
+
+#13 exporting to image
+#13 exporting layers 0.0s done
+#13 exporting manifest sha256:7eddcfe26719f27016a078e4c119e5c52aa5a2aa70510bd0f3ee9fa7f06579c3 done
+#13 exporting config sha256:8cf36d3799ff76a580652f48ddb9fb67cd1787c440af346c54aaf1d33d1bf94a done
+#13 exporting attestation manifest sha256:0421dedbed1cf6d64674f36bde9f2da80720970daad797d6b7b9f6b3a068be79 done
+#13 exporting manifest list sha256:0ee25120fff1d7ecec08835c16e40fee24f0090a80b46dd186e39417bf397ce0 done
+#13 naming to docker.io/library/crm-pytest-api-tester:latest done
+#13 unpacking to docker.io/library/crm-pytest-api-tester:latest done
+#13 DONE 0.1s
+
+#14 resolving provenance for metadata file
+#14 DONE 0.0s
+ Image crm-pytest-api-tester Built 
+ Container crm-pytest-app-1 Waiting 
+ Container crm-pytest-fake-oidc-1 Waiting 
+ Container crm-pytest-database-1 Waiting 
+ Container crm-pytest-database-1 Healthy 
+ Container crm-pytest-fake-oidc-1 Healthy 
+ Container crm-pytest-app-1 Healthy 
+ Container crm-pytest-api-tester-run-473ba5c8831f Creating 
+ Container crm-pytest-api-tester-run-473ba5c8831f Created 
+contacts: 60 RECORDS ADDED
+user_accounts: 60 RECORDS ADDED
+user_identities: 60 RECORDS ADDED
+invitations: 0 RECORDS ADDED
+user_sessions: 0 RECORDS ADDED
+role_types: 3 RECORDS ADDED
+group_types: 5 RECORDS ADDED
+family_units: 15 RECORDS ADDED
+award_types: 3 RECORDS ADDED
+groups: 11 RECORDS ADDED
+contact_roles_groups: 23 RECORDS ADDED
+contact_family_units: 30 RECORDS ADDED
+contact_awards: 15 RECORDS ADDED
+permissions: 1 RECORDS ADDED
+access_roles: 2 RECORDS ADDED
+access_role_permissions: 2 RECORDS ADDED
+user_access_role_assignments: 1 RECORDS ADDED
+audit_events: 0 RECORDS ADDED
+TOTAL: 291 RECORDS GENERATED
+
+=== RUNNING SMOKE TESTS ===
+
+208 deselected in 0.10s
+No tests selected in smoke
+
+=== RUNNING CONTRACT TESTS ===
+FFFFFFFFFFFFFF.FFFFFFFFFFFFFFFF                                          [100%]
+=================================== FAILURES ===================================
+_____________________ test_address_book_requires_a_session _____________________
+
+    def test_address_book_requires_a_session():
+        with httpx.Client() as client:
+            response = client.get(f"{API_URL}/api/v1/address-book", timeout=5)
+>       assert response.status_code == 401
+E       assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:81: AssertionError
+__________ test_address_book_rejects_a_contact_with_no_eligible_role ___________
+
+person = <function person.<locals>.create at 0xffff9e0cca40>
+session_token = <function session_token.<locals>.create at 0xffff9e0ccae0>
+
+    def test_address_book_rejects_a_contact_with_no_eligible_role(person, session_token):
+        _, account = person()
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 403
+E       assert 404 == 403
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:92: AssertionError
+_____ test_address_book_admits_any_adult_organisational_role[Group Leader] _____
+
+records = <function records.<locals>.insert at 0xffff9e0cce00>
+person = <function person.<locals>.create at 0xffff9e0cccc0>
+session_token = <function session_token.<locals>.create at 0xffff9e0cd260>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 183076, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('e3d47ec2-be40-443c-8eba-118085e74726'), 'id': UUID('819b5e31-70b2-49c4-aaab-0b8b937105d4'), ...}
+role = 'Group Leader'
+
+    @pytest.mark.parametrize("role", ["Group Leader", "Group Helper", "Area Manager"])
+    def test_address_book_admits_any_adult_organisational_role(
+        records, person, session_token, group, role
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id(role),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:112: AssertionError
+_____ test_address_book_admits_any_adult_organisational_role[Group Helper] _____
+
+records = <function records.<locals>.insert at 0xffff9e0cd580>
+person = <function person.<locals>.create at 0xffff9e0cd080>
+session_token = <function session_token.<locals>.create at 0xffff9e0cd9e0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 217897, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('6e0e2925-4c36-4906-a3d5-2d6eaa177761'), 'id': UUID('5e508202-1f91-48d6-8134-8fdc67a4a4b8'), ...}
+role = 'Group Helper'
+
+    @pytest.mark.parametrize("role", ["Group Leader", "Group Helper", "Area Manager"])
+    def test_address_book_admits_any_adult_organisational_role(
+        records, person, session_token, group, role
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id(role),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:112: AssertionError
+_____ test_address_book_admits_any_adult_organisational_role[Area Manager] _____
+
+records = <function records.<locals>.insert at 0xffff9e0ccfe0>
+person = <function person.<locals>.create at 0xffff9e0cd8a0>
+session_token = <function session_token.<locals>.create at 0xffff9e0cdbc0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 251410, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('8cbb7c68-f593-4a60-be90-0a5bcf3dd493'), 'id': UUID('bab7f8a8-21b8-4939-9593-c57949557b80'), ...}
+role = 'Area Manager'
+
+    @pytest.mark.parametrize("role", ["Group Leader", "Group Helper", "Area Manager"])
+    def test_address_book_admits_any_adult_organisational_role(
+        records, person, session_token, group, role
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id(role),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:112: AssertionError
+________________ test_address_book_admits_a_global_access_role _________________
+
+records = <function records.<locals>.insert at 0xffff9e0ce3e0>
+person = <function person.<locals>.create at 0xffff9e0cdb20>
+session_token = <function session_token.<locals>.create at 0xffff9e0ce480>
+
+    def test_address_book_admits_a_global_access_role(records, person, session_token):
+        _, account = person()
+        records(
+            "user_access_role_assignments",
+            user_account_id=account["id"],
+            access_role_id=global_access_role()["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:129: AssertionError
+_______ test_address_book_rejects_invalid_pagination[page-below-minimum] _______
+
+eligible_viewer = 'f8JJHPZuZeG42pGivr1X3vCDUP0L7Yw_ghzsL4rLoyprpYyLeGF0EoTvO3_x7w77'
+parameters = {'page': 0}
+
+    @pytest.mark.parametrize(
+        "parameters",
+        ({"page": 0}, {"page_size": 0}, {"page_size": 101}),
+        ids=("page-below-minimum", "page-size-below-minimum", "page-size-above-maximum"),
+    )
+    def test_address_book_rejects_invalid_pagination(eligible_viewer, parameters):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params=parameters,
+            cookies={"crm_session": eligible_viewer},
+            timeout=5,
+        )
+>       assert response.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:144: AssertionError
+____ test_address_book_rejects_invalid_pagination[page-size-below-minimum] _____
+
+eligible_viewer = 'YrS3lZtZFFXeBinXVafX4oPZAHkvxpGwzAgodb7sx6-PSRipHXU02QlY2B_AEJOX'
+parameters = {'page_size': 0}
+
+    @pytest.mark.parametrize(
+        "parameters",
+        ({"page": 0}, {"page_size": 0}, {"page_size": 101}),
+        ids=("page-below-minimum", "page-size-below-minimum", "page-size-above-maximum"),
+    )
+    def test_address_book_rejects_invalid_pagination(eligible_viewer, parameters):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params=parameters,
+            cookies={"crm_session": eligible_viewer},
+            timeout=5,
+        )
+>       assert response.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:144: AssertionError
+____ test_address_book_rejects_invalid_pagination[page-size-above-maximum] _____
+
+eligible_viewer = 'uUt1bUh1JkB1B8NntMIPklyZHEh0mPzEQclX_UK0Kt92rO3KcQXG6PFHhCqA9oiz'
+parameters = {'page_size': 101}
+
+    @pytest.mark.parametrize(
+        "parameters",
+        ({"page": 0}, {"page_size": 0}, {"page_size": 101}),
+        ids=("page-below-minimum", "page-size-below-minimum", "page-size-above-maximum"),
+    )
+    def test_address_book_rejects_invalid_pagination(eligible_viewer, parameters):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params=parameters,
+            cookies={"crm_session": eligible_viewer},
+            timeout=5,
+        )
+>       assert response.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:144: AssertionError
+__________ test_address_book_entry_shows_name_contact_and_group_role ___________
+
+records = <function records.<locals>.insert at 0xffff9e0cf740>
+person = <function person.<locals>.create at 0xffff9e0cf600>
+session_token = <function session_token.<locals>.create at 0xffff9e0cf9c0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 414952, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('8b4e4154-6ea7-43db-b884-d98c767acfa8'), 'id': UUID('2b595e3b-28cc-4964-aa50-e4dfcda3b243'), ...}
+
+    def test_address_book_entry_shows_name_contact_and_group_role(
+        records, person, session_token, group
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+        entry = next(
+            item
+>           for item in response.json()["items"]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+            if item["contact_id"] == str(contact["id"])
+        )
+E       KeyError: 'items'
+
+tests/api/test_address_book_endpoints.py:166: KeyError
+_________________ test_address_book_entry_shows_an_access_role _________________
+
+records = <function records.<locals>.insert at 0xffff9e0cf880>
+person = <function person.<locals>.create at 0xffff9e0cfb00>
+session_token = <function session_token.<locals>.create at 0xffff9e0cfec0>
+
+    def test_address_book_entry_shows_an_access_role(records, person, session_token):
+        contact, account = person()
+        access_role = global_access_role()
+        records(
+            "user_access_role_assignments",
+            user_account_id=account["id"],
+            access_role_id=access_role["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+        entry = next(
+            item
+>           for item in response.json()["items"]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+            if item["contact_id"] == str(contact["id"])
+        )
+E       KeyError: 'items'
+
+tests/api/test_address_book_endpoints.py:200: KeyError
+__________ test_address_book_group_path_lists_ancestors_root_to_leaf ___________
+
+records = <function records.<locals>.insert at 0xffff9e0182c0>
+person = <function person.<locals>.create at 0xffff9e018040>
+session_token = <function session_token.<locals>.create at 0xffff9e018360>
+hierarchy = ({'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 475053, tzinfo=datetime.timezone.utc), 'description': None, ...group_type_id': UUID('b3577e4e-9768-4903-a209-40be288aeb78'), 'id': UUID('e9f030ae-18cb-4f0f-a60f-bfe5c69a34e2'), ...})
+
+    def test_address_book_group_path_lists_ancestors_root_to_leaf(
+        records, person, session_token, hierarchy
+    ):
+        root, child = hierarchy
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=child["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book",
+            params={"page_size": 100},
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+        entry = next(
+            item
+>           for item in response.json()["items"]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+            if item["contact_id"] == str(contact["id"])
+        )
+E       KeyError: 'items'
+
+tests/api/test_address_book_endpoints.py:228: KeyError
+_______________ test_address_book_detail_returns_matching_entry ________________
+
+records = <function records.<locals>.insert at 0xffff9e0184a0>
+person = <function person.<locals>.create at 0xffff9e018860>
+session_token = <function session_token.<locals>.create at 0xffff9e018900>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 513306, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('df1532f2-8d1d-4593-a002-1fbeb8b19474'), 'id': UUID('fb1c10ac-4d01-4b1c-a060-a6608c0a2985'), ...}
+
+    def test_address_book_detail_returns_matching_entry(records, person, session_token, group):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Helper"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/{contact['id']}",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:254: AssertionError
+____________ test_address_book_detail_returns_404_for_a_non_member _____________
+
+person = <function person.<locals>.create at 0xffff9e0cfe20>
+eligible_viewer = '7MLL1k-BqdU8mLhWUO3CQ9-SMX8p6gesHMA9sJX3WJrd4SInV0TijI-WOw4xbW79'
+
+    def test_address_book_detail_returns_404_for_a_non_member(person, eligible_viewer):
+        non_member, _ = person()
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/{non_member['id']}",
+            cookies={"crm_session": eligible_viewer},
+            timeout=5,
+        )
+        assert response.status_code == 404
+>       assert response.json() == {"detail": "Address book entry not found"}
+E       AssertionError: assert {'detail': 'Not Found'} == {'detail': 'A...ry not found'}
+E         
+E         Differing items:
+E         {'detail': 'Not Found'} != {'detail': 'Address book entry not found'}
+E         Use -v to get more diff
+
+tests/api/test_address_book_endpoints.py:266: AssertionError
+_______________ test_address_book_detail_rejects_malformed_uuid ________________
+
+eligible_viewer = 'yPzg6Rgnxj66ZbT_KqOEmtwgc7U-0kxWCdNN0mF4HkakuZqYNJb38_LA0Hp-n4yN'
+
+    def test_address_book_detail_rejects_malformed_uuid(eligible_viewer):
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/not-a-uuid",
+            cookies={"crm_session": eligible_viewer},
+            timeout=5,
+        )
+>       assert response.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:284: AssertionError
+______________ test_address_book_detail_requires_eligibility_too _______________
+
+person = <function person.<locals>.create at 0xffff9e0cdbc0>
+session_token = <function session_token.<locals>.create at 0xffff9e0cdee0>
+
+    def test_address_book_detail_requires_eligibility_too(person, session_token):
+        _, account = person()
+        other, _ = person()
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/{other['id']}",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 403
+E       assert 404 == 403
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:295: AssertionError
+_________________ test_directory_visibility_requires_a_session _________________
+
+    def test_directory_visibility_requires_a_session():
+        with httpx.Client() as client:
+            response = client.get(f"{API_URL}/api/v1/address-book/visibility", timeout=5)
+>       assert response.status_code == 401
+E       assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:304: AssertionError
+_________ test_directory_visibility_available_without_an_eligible_role _________
+
+person = <function person.<locals>.create at 0xffff9e0cc900>
+session_token = <function session_token.<locals>.create at 0xffff9e0cc9a0>
+
+    def test_directory_visibility_available_without_an_eligible_role(person, session_token):
+        _, account = person()
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/visibility",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:314: AssertionError
+____________ test_directory_visibility_lists_current_eligible_roles ____________
+
+records = <function records.<locals>.insert at 0xffff9e018360>
+person = <function person.<locals>.create at 0xffff9e018400>
+session_token = <function session_token.<locals>.create at 0xffff9e018040>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 705987, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('56db5f02-b3dd-437a-82ab-6f58e4813ccb'), 'id': UUID('aec34cc5-493b-4679-a43a-f8992cd99f03'), ...}
+
+    def test_directory_visibility_lists_current_eligible_roles(
+        records, person, session_token, group
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        response = httpx.get(
+            f"{API_URL}/api/v1/address-book/visibility",
+            cookies={"crm_session": session_token(account["id"])},
+            timeout=5,
+        )
+        body = response.json()
+>       assert body["hidden_from_directory"] is False
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'hidden_from_directory'
+
+tests/api/test_address_book_endpoints.py:335: KeyError
+___________ test_directory_visibility_patch_hides_the_whole_profile ____________
+
+records = <function records.<locals>.insert at 0xffff9e019bc0>
+person = <function person.<locals>.create at 0xffff9e0189a0>
+session_token = <function session_token.<locals>.create at 0xffff9e019c60>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 738715, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('94cd3995-9b44-4637-a24c-9d7ffd2cd573'), 'id': UUID('7eb67779-7aaf-43b2-a5f8-4dbf8862a16b'), ...}
+caller = <starlette.testclient.TestClient object at 0xffff9f357800>
+
+    def test_directory_visibility_patch_hides_the_whole_profile(
+        records, person, session_token, group, caller
+    ):
+        contact, account = person()
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:353: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f357800>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+____________ test_directory_visibility_patch_hides_a_specific_role _____________
+
+records = <function records.<locals>.insert at 0xffff9c512c00>
+person = <function person.<locals>.create at 0xffff9c513060>
+session_token = <function session_token.<locals>.create at 0xffff9c512fc0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 914095, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('8b2f4d1e-1bb3-433a-850c-4ef0b0ec2618'), 'id': UUID('2c5e089b-8b0d-4407-8d3e-4fe726d3d76f'), ...}
+caller = <starlette.testclient.TestClient object at 0xffff9f3e3e00>
+
+    def test_directory_visibility_patch_hides_a_specific_role(
+        records, person, session_token, group, caller
+    ):
+        contact, account = person()
+        leader_role = records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        records(
+            "contact_roles_groups",
+            contact_id=contact["id"],
+            role_type_id=role_type_id("Group Helper"),
+            group_id=group["id"],
+            start_date=date(2000, 1, 1),
+        )
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:400: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f3e3e00>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+__________ test_directory_visibility_patch_rejects_a_foreign_role_id ___________
+
+records = <function records.<locals>.insert at 0xffff9c512ca0>
+person = <function person.<locals>.create at 0xffff9c513100>
+session_token = <function session_token.<locals>.create at 0xffff9c5131a0>
+group = {'created_at': datetime.datetime(2026, 9, 13, 13, 24, 9, 954861, tzinfo=datetime.timezone.utc), 'description': None, 'group_type_id': UUID('3bdb3f6c-b821-4f00-a874-d330bc7f6596'), 'id': UUID('11449f3c-d99c-474b-b503-70a0ed98b5a0'), ...}
+caller = <starlette.testclient.TestClient object at 0xffff9f3ea180>
+
+    def test_directory_visibility_patch_rejects_a_foreign_role_id(
+        records, person, session_token, group, caller
+    ):
+        _, account = person()
+        other, _ = person()
+        other_role = records(
+            "contact_roles_groups",
+            contact_id=other["id"],
+            role_type_id=role_type_id("Group Leader"),
+            group_id=group["id"],
+            start_date=date.today(),
+        )
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:430: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f3ea180>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+______________ test_directory_visibility_patch_rejects_empty_body ______________
+
+person = <function person.<locals>.create at 0xffff9c5134c0>
+session_token = <function session_token.<locals>.create at 0xffff9c513560>
+caller = <starlette.testclient.TestClient object at 0xffff9f3e8380>
+
+    def test_directory_visibility_patch_rejects_empty_body(person, session_token, caller):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:442: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f3e8380>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+_ test_directory_visibility_patch_requires_current_single_strong_tag[None-428] _
+
+person = <function person.<locals>.create at 0xffff9c564c20>
+session_token = <function session_token.<locals>.create at 0xffff9c5653a0>
+caller = <starlette.testclient.TestClient object at 0xffff9f3f16d0>
+header = None, expected = 428
+
+    @pytest.mark.parametrize(
+        "header,expected",
+        [(None, 428), ("*", 422), ('W/"x"', 422), ('"stale"', 412)],
+    )
+    def test_directory_visibility_patch_requires_current_single_strong_tag(
+        person, session_token, caller, header, expected
+    ):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+        response = caller.patch(
+            "/api/v1/address-book/visibility",
+            json={"hidden_from_directory": True},
+            headers={} if header is None else {"If-Match": header},
+        )
+>       assert response.status_code == expected
+E       assert 404 == 428
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:463: AssertionError
+__ test_directory_visibility_patch_requires_current_single_strong_tag[*-422] ___
+
+person = <function person.<locals>.create at 0xffff9c564ea0>
+session_token = <function session_token.<locals>.create at 0xffff9c564860>
+caller = <starlette.testclient.TestClient object at 0xffff9f3f1e80>
+header = '*', expected = 422
+
+    @pytest.mark.parametrize(
+        "header,expected",
+        [(None, 428), ("*", 422), ('W/"x"', 422), ('"stale"', 412)],
+    )
+    def test_directory_visibility_patch_requires_current_single_strong_tag(
+        person, session_token, caller, header, expected
+    ):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+        response = caller.patch(
+            "/api/v1/address-book/visibility",
+            json={"hidden_from_directory": True},
+            headers={} if header is None else {"If-Match": header},
+        )
+>       assert response.status_code == expected
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:463: AssertionError
+_ test_directory_visibility_patch_requires_current_single_strong_tag[W/"x"-422] _
+
+person = <function person.<locals>.create at 0xffff9c566340>
+session_token = <function session_token.<locals>.create at 0xffff9c5649a0>
+caller = <starlette.testclient.TestClient object at 0xffff9f1f9250>
+header = 'W/"x"', expected = 422
+
+    @pytest.mark.parametrize(
+        "header,expected",
+        [(None, 428), ("*", 422), ('W/"x"', 422), ('"stale"', 412)],
+    )
+    def test_directory_visibility_patch_requires_current_single_strong_tag(
+        person, session_token, caller, header, expected
+    ):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+        response = caller.patch(
+            "/api/v1/address-book/visibility",
+            json={"hidden_from_directory": True},
+            headers={} if header is None else {"If-Match": header},
+        )
+>       assert response.status_code == expected
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:463: AssertionError
+_ test_directory_visibility_patch_requires_current_single_strong_tag["stale"-412] _
+
+person = <function person.<locals>.create at 0xffff9c512d40>
+session_token = <function session_token.<locals>.create at 0xffff9c5134c0>
+caller = <starlette.testclient.TestClient object at 0xffff9f1f9130>
+header = '"stale"', expected = 412
+
+    @pytest.mark.parametrize(
+        "header,expected",
+        [(None, 428), ("*", 422), ('W/"x"', 422), ('"stale"', 412)],
+    )
+    def test_directory_visibility_patch_requires_current_single_strong_tag(
+        person, session_token, caller, header, expected
+    ):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+        response = caller.patch(
+            "/api/v1/address-book/visibility",
+            json={"hidden_from_directory": True},
+            headers={} if header is None else {"If-Match": header},
+        )
+>       assert response.status_code == expected
+E       assert 404 == 412
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:463: AssertionError
+___________ test_directory_visibility_patch_csrf_rejected[headers0] ____________
+
+person = <function person.<locals>.create at 0xffff9c512840>
+session_token = <function session_token.<locals>.create at 0xffff9c512fc0>
+caller = <starlette.testclient.TestClient object at 0xffff9f1fb230>
+headers = {'Origin': 'https://evil.example'}
+
+    @pytest.mark.parametrize(
+        "headers",
+        [{"Origin": "https://evil.example"}, {"X-CRM-CSRF": "wrong"}],
+    )
+    def test_directory_visibility_patch_csrf_rejected(person, session_token, caller, headers):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:473: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f1fb230>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+___________ test_directory_visibility_patch_csrf_rejected[headers1] ____________
+
+person = <function person.<locals>.create at 0xffff9c513060>
+session_token = <function session_token.<locals>.create at 0xffff9c513740>
+caller = <starlette.testclient.TestClient object at 0xffff9f3f10d0>
+headers = {'X-CRM-CSRF': 'wrong'}
+
+    @pytest.mark.parametrize(
+        "headers",
+        [{"Origin": "https://evil.example"}, {"X-CRM-CSRF": "wrong"}],
+    )
+    def test_directory_visibility_patch_csrf_rejected(person, session_token, caller, headers):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:473: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f3f10d0>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+______________ test_directory_visibility_patch_audits_the_change _______________
+
+person = <function person.<locals>.create at 0xffff9c565d00>
+session_token = <function session_token.<locals>.create at 0xffff9c565b20>
+caller = <starlette.testclient.TestClient object at 0xffff9f3ea720>
+
+    def test_directory_visibility_patch_audits_the_change(person, session_token, caller):
+        _, account = person()
+        caller.cookies.set("crm_session", session_token(account["id"]))
+>       before = tag(caller, "/api/v1/address-book/visibility")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/api/test_address_book_endpoints.py:485: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <starlette.testclient.TestClient object at 0xffff9f3ea720>
+path = '/api/v1/address-book/visibility'
+
+    def tag(client, path):
+        response = client.get(path)
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/api/test_address_book_endpoints.py:70: AssertionError
+=============================== warnings summary ===============================
+test_address_book_endpoints.py::test_directory_visibility_patch_hides_the_whole_profile
+  /usr/local/lib/python3.12/site-packages/starlette/testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_requires_a_session
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_rejects_a_contact_with_no_eligible_role
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_admits_any_adult_organisational_role[Group Leader]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_admits_any_adult_organisational_role[Group Helper]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_admits_any_adult_organisational_role[Area Manager]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_admits_a_global_access_role
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_rejects_invalid_pagination[page-below-minimum]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_rejects_invalid_pagination[page-size-below-minimum]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_rejects_invalid_pagination[page-size-above-maximum]
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_entry_shows_name_contact_and_group_role
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_entry_shows_an_access_role
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_group_path_lists_ancestors_root_to_leaf
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_detail_returns_matching_entry
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_detail_returns_404_for_a_non_member
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_detail_rejects_malformed_uuid
+FAILED tests/api/test_address_book_endpoints.py::test_address_book_detail_requires_eligibility_too
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_requires_a_session
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_available_without_an_eligible_role
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_lists_current_eligible_roles
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_hides_the_whole_profile
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_hides_a_specific_role
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_rejects_a_foreign_role_id
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_rejects_empty_body
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_requires_current_single_strong_tag[None-428]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_requires_current_single_strong_tag[*-422]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_requires_current_single_strong_tag[W/"x"-422]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_requires_current_single_strong_tag["stale"-412]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_csrf_rejected[headers0]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_csrf_rejected[headers1]
+FAILED tests/api/test_address_book_endpoints.py::test_directory_visibility_patch_audits_the_change
+30 failed, 1 passed, 177 deselected, 1 warning in 1.16s
+

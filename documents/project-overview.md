@@ -93,8 +93,7 @@ than executable deployment files:
   application authorization interface, and future OpenFGA direction.
 - `project-overview.md` is this high-level introduction.
 
-The DBML model and `database/schema.sql` should remain synchronized whenever the
-data model changes.
+`documents/database/db.dbml` is the source of truth for the data model — see [`way-of-working.md`](way-of-working.md). `database/schema.sql` is written to match it whenever the model changes, never the other way around.
 
 ### React frontend
 
